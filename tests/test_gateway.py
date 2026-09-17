@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import BaseModel
 
 from mini_secure_agent.anomaly import AnomalyDetector
 from mini_secure_agent.audit import AuditLog
@@ -10,7 +11,6 @@ from mini_secure_agent.gateway import SecureAgentGateway, SecurityDenied
 from mini_secure_agent.guardrails import SignatureScanner
 from mini_secure_agent.models import AgentRequest, Decision, Message, Principal
 from mini_secure_agent.tools import ToolRegistry, ToolSpec
-from pydantic import BaseModel
 
 
 class FakeProvider:

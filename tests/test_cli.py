@@ -27,3 +27,13 @@ def test_serve_propagates_selected_config(tmp_path: Path, monkeypatch: pytest.Mo
     assert result.exit_code == 0
     assert os.environ["MSA_CONFIG"] == str(config.resolve())
     assert called["port"] == 9123
+
+
+def test_live_demo_rejects_opa_development_bypass() -> None:
+    result = CliRunner().invoke(
+        app,
+        ["demo", "article-only", "--live", "--config", "config/agent.yaml"],
+    )
+
+    assert result.exit_code != 0
+    assert "require fail-closed OPA" in result.output

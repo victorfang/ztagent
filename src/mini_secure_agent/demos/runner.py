@@ -62,7 +62,9 @@ class OfflineLangChainModel:
                     "delivery": {
                         "channel": "social",
                         "recipient": "@company-demo",
-                        "content": "Secure AI agents need identity, least privilege, and audit trails.",
+                        "content": (
+                            "Secure AI agents need identity, least privilege, and audit trails."
+                        ),
                     },
                 }
             )
@@ -101,9 +103,7 @@ class OfflineProvider:
 
     name = "offline-demo"
 
-    async def generate(
-        self, messages: list[Message], model: str | None = None
-    ) -> tuple[str, str]:
+    async def generate(self, messages: list[Message], model: str | None = None) -> tuple[str, str]:
         result = await OfflineLangChainModel().ainvoke(messages[-1].content)
         plan = _parse_plan(result)
         return str(plan.get("text", result)), model or "offline-demo"
@@ -167,18 +167,12 @@ class DemoRunner:
                 "Vulnerable baseline trusted model instructions and executed tools directly."
             ),
             model_output=str(plan.get("text", model_output)),
-            outbox=self.outbox.read(),
+            outbox=self.outbox.read_current_run(),
             controls=["none (intentional vulnerable baseline)"],
         )
 
     async def _run_after(self, scenario: DemoScenario) -> DemoResult:
-        controls = [
-            "signature scanning",
-            "schema-validated tools",
-            "OPA-compatible authorization",
-            "audit trail",
-            "anomaly counters",
-        ]
+        controls = _scenario_controls(scenario)
         try:
             prompt = await self._scenario_prompt(scenario, secured=True)
             secure_model = as_langchain_runnable(self.gateway, self.principal)
@@ -200,9 +194,9 @@ class DemoRunner:
                 mode="after",
                 scenario=scenario,
                 status="completed",
-                explanation="Request completed through every framework security boundary.",
+                explanation="Request completed through the applicable framework controls.",
                 model_output=model_output,
-                outbox=self.outbox.read(),
+                outbox=self.outbox.read_current_run(),
                 controls=controls,
             )
         except SecurityDenied as exc:
@@ -211,7 +205,7 @@ class DemoRunner:
                 scenario=scenario,
                 status="blocked",
                 explanation=exc.reason,
-                outbox=self.outbox.read(),
+                outbox=self.outbox.read_current_run(),
                 controls=controls,
             )
 
@@ -242,9 +236,7 @@ class DemoRunner:
         try:
             from langchain_core.runnables import RunnableLambda
         except ImportError as exc:
-            raise RuntimeError(
-                "Demos require: pip install 'mini-secure-agent[demos]'"
-            ) from exc
+            raise RuntimeError("Demos require: pip install 'mini-secure-agent[demos]'") from exc
         chain = RunnableLambda(model.ainvoke)
         result = await chain.ainvoke(prompt)
         return str(result)
@@ -299,3 +291,28 @@ def _parse_plan(value: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {"text": value, "delivery": None}
     return result if isinstance(result, dict) else {"text": value, "delivery": None}
+
+
+def _scenario_controls(scenario: DemoScenario) -> list[str]:
+    if scenario == "stock-injection":
+        return [
+            "tool policy",
+            "schema-validated stock arguments",
+            "untrusted tool-output scanning",
+            "request anomaly counter",
+            "audit trail",
+        ]
+    if scenario == "unauthorized-publish":
+        return [
+            "input signature scanning",
+            "model policy",
+            "high-risk tool policy",
+            "request anomaly counter",
+            "audit trail",
+        ]
+    return [
+        "input signature scanning",
+        "model policy",
+        "request anomaly counter",
+        "audit trail",
+    ]

@@ -102,20 +102,6 @@ class SecureAgentGateway:
                 {"error_type": type(exc).__name__},
             )
             raise
-        output_findings = self.scanner.scan(json.dumps(result, default=str))
-        if self._must_block(output_findings):
-            self._audit(
-                "tool_output_detection",
-                "blocked",
-                principal,
-                request_id,
-                source_ip,
-                {
-                    "tool": name,
-                    "detections": [item.model_dump() for item in output_findings],
-                },
-            )
-            raise SecurityDenied("Untrusted tool output blocked by security controls", request_id)
         self._audit(
             "model_call",
             "allowed",
@@ -181,6 +167,20 @@ class SecureAgentGateway:
                 {"tool": name, "error_type": type(exc).__name__},
             )
             raise
+        output_findings = self.scanner.scan(json.dumps(result, default=str))
+        if self._must_block(output_findings):
+            self._audit(
+                "tool_output_detection",
+                "blocked",
+                principal,
+                request_id,
+                source_ip,
+                {
+                    "tool": name,
+                    "detections": [item.model_dump() for item in output_findings],
+                },
+            )
+            raise SecurityDenied("Untrusted tool output blocked by security controls", request_id)
         self._audit(
             "tool_call",
             "allowed",
