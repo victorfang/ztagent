@@ -98,17 +98,21 @@ business approval requirements. OPA is bound to loopback in `compose.yaml`.
 from pydantic import BaseModel
 from mini_secure_agent.tools import ToolRegistry, ToolSpec
 
+
 class LookupArgs(BaseModel):
     ticket_id: str
 
+
 registry = ToolRegistry()
-registry.register(ToolSpec(
-    name="lookup_ticket",
-    description="Read one support ticket",
-    arguments=LookupArgs,
-    handler=lambda args: {"id": args.ticket_id},
-    risk="low",
-))
+registry.register(
+    ToolSpec(
+        name="lookup_ticket",
+        description="Read one support ticket",
+        arguments=LookupArgs,
+        handler=lambda args: {"id": args.ticket_id},
+        risk="low",
+    )
+)
 ```
 
 Pass the registry to `create_gateway(config, registry)`, then to
@@ -126,9 +130,7 @@ pip install -e '.[langchain]'
 from mini_secure_agent.integrations import as_langchain_runnable
 
 secure_node = as_langchain_runnable(gateway, principal)
-result = await secure_node.ainvoke({
-    "messages": [{"role": "user", "content": "Hello"}]
-})
+result = await secure_node.ainvoke({"messages": [{"role": "user", "content": "Hello"}]})
 ```
 
 The application must derive `principal` from a verified request; never accept

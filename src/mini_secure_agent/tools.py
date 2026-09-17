@@ -9,7 +9,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-
 ToolHandler = Callable[[BaseModel], Any | Awaitable[Any]]
 
 

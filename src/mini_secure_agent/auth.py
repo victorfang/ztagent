@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
+import anyio
 import jwt
 from fastapi import HTTPException, Request, status
 from jwt import PyJWKClient
@@ -16,6 +18,7 @@ class JWTAuthenticator:
     def __init__(self, config: AuthConfig) -> None:
         self.config = config
         self._jwks = PyJWKClient(config.jwks_url, timeout=5, lifespan=300)
+        self._verification_slots = asyncio.Semaphore(20)
 
     def verify(self, token: str) -> Principal:
         try:
@@ -55,7 +58,10 @@ class JWTAuthenticator:
                 detail="Bearer token required",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        return self.verify(token)
+        if len(token) > self.config.max_token_chars:
+            raise HTTPException(status_code=401, detail="Access token is too large")
+        async with self._verification_slots:
+            return await anyio.to_thread.run_sync(self.verify, token)
 
 
 def _nested_claim(claims: dict[str, Any], path: str) -> Any:

@@ -20,3 +20,12 @@ def test_environment_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setenv("MSA_SERVER__PORT", "9000")
 
     assert load_config(path).server.port == 9000
+
+
+def test_production_rejects_symmetric_jwt_algorithm() -> None:
+    config = AppConfig()
+    config.server.environment = "production"
+    config.auth.algorithms = ["HS256"]
+
+    with pytest.raises(ValueError, match="asymmetric"):
+        config.validate_security()

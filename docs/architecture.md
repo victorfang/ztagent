@@ -38,6 +38,8 @@ FastAPI API gateway ── body limits / secure headers
 All orchestrators should call the gateway, rather than model adapters or tool
 handlers directly. Network policy should reinforce that design by allowing
 model-provider and sensitive-tool egress only from the gateway workload.
+The public endpoint accepts only `user` messages; trusted system instructions
+must be injected by application code before calling the gateway.
 
 ## Threat coverage
 
@@ -71,6 +73,9 @@ security boundaries.
    restore access.
 5. Human administrators may unblock a subject through the protected admin API.
    This action should be placed behind an approval workflow in higher-risk use.
+6. Tool authorization intent is durably audited before a handler runs, followed
+   by completion/error. Side-effecting handlers should also implement business
+   idempotency because a process failure can leave execution outcome uncertain.
 
 ## Audit design
 

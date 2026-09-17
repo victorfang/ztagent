@@ -8,6 +8,7 @@ import threading
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -81,7 +82,8 @@ class ContainmentService:
                 if token:
                     url = (
                         f"{self.config.keycloak_admin_url.rstrip('/')}/admin/realms/"
-                        f"{self.config.keycloak_realm}/users/{subject}/logout"
+                        f"{quote(self.config.keycloak_realm, safe='')}/users/"
+                        f"{quote(subject, safe='')}/logout"
                     )
                     try:
                         response = await client.post(

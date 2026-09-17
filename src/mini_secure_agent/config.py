@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 import yaml
 from pydantic import BaseModel, Field, SecretStr, ValidationError
@@ -26,6 +27,7 @@ class AuthConfig(BaseModel):
     algorithms: list[str] = ["RS256"]
     role_claim: str = "realm_access.roles"
     clock_skew_seconds: int = Field(default=30, ge=0, le=300)
+    max_token_chars: int = Field(default=16_384, ge=256, le=65_536)
 
 
 class ProviderConfig(BaseModel):
@@ -33,14 +35,22 @@ class ProviderConfig(BaseModel):
     model: str = "gpt-5-mini"
     allowed_models: list[str] = []
     base_url: str | None = None
-    api_key_env: str = "OPENAI_API_KEY"
+    api_key_env: str | None = None
     timeout_seconds: float = Field(default=60, gt=0, le=300)
     max_output_tokens: int = Field(default=1024, ge=1, le=32_768)
 
     def api_key(self) -> SecretStr:
-        value = os.getenv(self.api_key_env)
+        variable = (
+            self.api_key_env
+            or {
+                "openai": "OPENAI_API_KEY",
+                "anthropic": "ANTHROPIC_API_KEY",
+                "openai-compatible": "OPENAI_API_KEY",
+            }[self.kind]
+        )
+        value = os.getenv(variable)
         if not value:
-            raise RuntimeError(f"Required environment variable {self.api_key_env} is not set")
+            raise RuntimeError(f"Required environment variable {variable} is not set")
         return SecretStr(value)
 
 
@@ -97,6 +107,15 @@ class AppConfig(BaseModel):
             errors: list[str] = []
             if not self.auth.enabled:
                 errors.append("authentication cannot be disabled")
+            if not self.auth.algorithms or any(
+                algorithm.startswith("HS") or algorithm.lower() == "none"
+                for algorithm in self.auth.algorithms
+            ):
+                errors.append("JWT algorithms must be asymmetric and explicitly configured")
+            if urlparse(self.auth.issuer).scheme != "https":
+                errors.append("OIDC issuer must use HTTPS")
+            if urlparse(self.auth.jwks_url).scheme != "https":
+                errors.append("OIDC JWKS URL must use HTTPS")
             if self.policy.fail_open or self.policy.development_allow_without_opa:
                 errors.append("OPA must fail closed")
             if self.server.host == "0.0.0.0" and not self.auth.enabled:
@@ -123,7 +142,8 @@ def _env_overrides(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_config(path: str | Path | None = None) -> AppConfig:
-    config_path = Path(path or os.getenv("MSA_CONFIG", "config/agent.yaml"))
+    selected_path = path if path is not None else os.getenv("MSA_CONFIG") or "config/agent.yaml"
+    config_path = Path(selected_path)
     raw: dict[str, Any] = {}
     if config_path.exists():
         loaded = yaml.safe_load(config_path.read_text(encoding="utf-8"))

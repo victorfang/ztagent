@@ -19,7 +19,7 @@ provider:
   kind: openai
   model: gpt-5-mini
   allowed_models: [gpt-5-mini]
-  api_key_env: OPENAI_API_KEY
+  # api_key_env defaults to OPENAI_API_KEY or ANTHROPIC_API_KEY by provider.
   # For Kimi or another OpenAI-compatible server:
   # kind: openai-compatible
   # base_url: https://your-model-host/v1
@@ -67,7 +67,9 @@ signatures:
     score: 90
   - id: pi.system-exfiltration
     description: Attempts to disclose hidden system or developer instructions
-    pattern: '(?:reveal|print|show|repeat|leak).{0,40}(?:system|developer|hidden)\s+(?:prompt|instructions?)'
+    pattern: >-
+      (?:reveal|print|show|repeat|leak).{0,40}
+      (?:system|developer|hidden)\s+(?:prompt|instructions?)
     category: prompt-exfiltration
     severity: high
     action: block

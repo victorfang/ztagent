@@ -133,6 +133,7 @@ class SecureAgentGateway:
         spec = self.tools.get(name)
         argument_text = json.dumps(arguments, default=str)
         findings = self.scanner.scan(argument_text)
+        findings.extend(self.anomaly.observe_request(principal.subject, 1, len(argument_text)))
         if self._must_block(findings):
             await self._deny(principal, request_id, source_ip, findings)
         decision = await self.policy.decide(
@@ -146,6 +147,14 @@ class SecureAgentGateway:
         )
         if not decision.allowed:
             await self._deny_reason(principal, request_id, source_ip, decision.reason, "policy")
+        self._audit(
+            "tool_call_intent",
+            "authorized",
+            principal,
+            request_id,
+            source_ip,
+            {"tool": name, "risk": spec.risk},
+        )
         try:
             result = await self.tools.execute(name, arguments)
         except Exception as exc:
@@ -169,9 +178,10 @@ class SecureAgentGateway:
         return {"request_id": request_id, "result": result}
 
     def _must_block(self, findings: list[Detection]) -> bool:
-        return any(item.action in {"block", "contain"} for item in findings) or sum(
-            item.score for item in findings
-        ) >= self.config.guardrails.block_score
+        return (
+            any(item.action in {"block", "contain"} for item in findings)
+            or sum(item.score for item in findings) >= self.config.guardrails.block_score
+        )
 
     def _ensure_not_contained(self, principal: Principal, request_id: str) -> None:
         if self.containment.blocklist.contains(principal.subject):

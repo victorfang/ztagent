@@ -38,7 +38,9 @@ class OPAClient:
             return Decision(allowed=False, reason="OPA returned an undefined decision")
         except (httpx.HTTPError, ValueError, TypeError) as exc:
             if self.config.development_allow_without_opa:
-                return Decision(allowed=True, reason=f"Development OPA bypass: {type(exc).__name__}")
+                return Decision(
+                    allowed=True, reason=f"Development OPA bypass: {type(exc).__name__}"
+                )
             return Decision(
                 allowed=self.config.fail_open,
                 reason=f"OPA unavailable ({type(exc).__name__}); "

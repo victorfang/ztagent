@@ -17,7 +17,6 @@ provider:
   kind: openai
   model: gpt-5-mini
   allowed_models: [gpt-5-mini]
-  api_key_env: OPENAI_API_KEY
 
 policy:
   opa_url: http://127.0.0.1:8181
