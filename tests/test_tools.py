@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, ValidationError
 import pytest
+from pydantic import BaseModel, Field, ValidationError
 
 from mini_secure_agent.tools import ToolRegistry, ToolSpec
 

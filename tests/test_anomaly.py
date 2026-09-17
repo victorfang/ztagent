@@ -22,9 +22,7 @@ def test_rolling_request_limit_blocks_after_threshold(tmp_path: Path) -> None:
 
 
 def test_repeated_blocks_trigger_containment() -> None:
-    detector = AnomalyDetector(
-        AnomalyConfig(state_backend="memory", blocked_events_per_24h=2)
-    )
+    detector = AnomalyDetector(AnomalyConfig(state_backend="memory", blocked_events_per_24h=2))
 
     assert detector.observe_block("victor") == []
     findings = detector.observe_block("victor")

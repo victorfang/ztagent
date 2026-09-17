@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import secrets
 from pathlib import Path
 
@@ -93,9 +94,9 @@ def serve(
     """Run the API gateway and administration portal."""
     import uvicorn
 
-    loaded = load_config(config)
-    if reload:
-        typer.echo("Reload mode uses app:create_app only when MSA_CONFIG points to your config.")
+    resolved_config = config.resolve()
+    loaded = load_config(resolved_config)
+    os.environ["MSA_CONFIG"] = str(resolved_config)
     uvicorn.run(
         "mini_secure_agent.api:create_app",
         factory=True,

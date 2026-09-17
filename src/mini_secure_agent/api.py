@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
-from starlette.types import ASGIApp, Message as ASGIMessage, Receive, Scope, Send
+from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import Message as ASGIMessage
 
 from .anomaly import AnomalyDetector
 from .audit import AuditLog
@@ -17,7 +18,7 @@ from .config import AppConfig, load_config
 from .containment import ContainmentService
 from .gateway import SecureAgentGateway, SecurityDenied
 from .guardrails import SignatureScanner
-from .models import AgentRequest, Principal
+from .models import AgentRequest, Message, Principal, SecurityEvent
 from .policy import OPAClient
 from .portal import ADMIN_HTML
 from .providers import HTTPModelProvider, ProviderError
@@ -26,6 +27,26 @@ from .tools import ToolRegistry
 
 class ToolCallRequest(BaseModel):
     arguments: dict[str, Any] = Field(default_factory=dict)
+
+
+class PublicMessage(BaseModel):
+    role: Literal["user"] = "user"
+    content: str = Field(min_length=1, max_length=100_000)
+
+
+class PublicAgentRequest(BaseModel):
+    messages: list[PublicMessage] = Field(min_length=1, max_length=100)
+    model: str | None = None
+    tools: list[str] = Field(default_factory=list, max_length=32)
+    metadata: dict[str, str] = Field(default_factory=dict)
+
+    def trusted_request(self) -> AgentRequest:
+        return AgentRequest(
+            messages=[Message(role="user", content=item.content) for item in self.messages],
+            model=self.model,
+            tools=self.tools,
+            metadata=self.metadata,
+        )
 
 
 class BodyLimitMiddleware:
@@ -37,32 +58,39 @@ class BodyLimitMiddleware:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
+        chunks: list[bytes] = []
         size = 0
-
-        async def limited_receive() -> ASGIMessage:
-            nonlocal size
+        more_body = True
+        while more_body:
             message = await receive()
-            if message["type"] == "http.request":
-                size += len(message.get("body", b""))
-                if size > self.max_bytes:
-                    raise _BodyTooLarge
-            return message
+            if message["type"] != "http.request":
+                continue
+            chunk = message.get("body", b"")
+            size += len(chunk)
+            if size > self.max_bytes:
+                response = JSONResponse(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    content={"detail": "Request body too large"},
+                )
+                await response(scope, receive, send)
+                return
+            chunks.append(chunk)
+            more_body = message.get("more_body", False)
 
-        try:
-            await self.app(scope, limited_receive, send)
-        except _BodyTooLarge:
-            response = JSONResponse(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                content={"detail": "Request body too large"},
-            )
-            await response(scope, receive, send)
+        delivered = False
 
+        async def replay_receive() -> ASGIMessage:
+            nonlocal delivered
+            if delivered:
+                return {"type": "http.disconnect"}
+            delivered = True
+            return {"type": "http.request", "body": b"".join(chunks), "more_body": False}
 
-class _BodyTooLarge(Exception):
-    pass
+        await self.app(scope, replay_receive, send)
 
 
 def create_gateway(config: AppConfig, tools: ToolRegistry | None = None) -> SecureAgentGateway:
+    config.validate_security()
     return SecureAgentGateway(
         config=config,
         provider=HTTPModelProvider(config.provider),
@@ -83,6 +111,7 @@ def create_app(
     config: AppConfig | None = None, gateway: SecureAgentGateway | None = None
 ) -> FastAPI:
     cfg = config or load_config()
+    cfg.validate_security()
     secured = gateway or create_gateway(cfg)
     authenticator = JWTAuthenticator(cfg.auth)
     app = FastAPI(
@@ -133,9 +162,9 @@ def create_app(
 
     @app.post("/v1/agent/run")
     async def run_agent(
-        body: AgentRequest, request: Request, user: Principal = Depends(principal)
+        body: PublicAgentRequest, request: Request, user: Principal = Depends(principal)
     ) -> Any:
-        return await secured.run(body, user, _source_ip(request))
+        return await secured.run(body.trusted_request(), user, _source_ip(request))
 
     @app.post("/v1/tools/{tool_name}")
     async def execute_tool(
@@ -145,9 +174,7 @@ def create_app(
         user: Principal = Depends(principal),
     ) -> Any:
         try:
-            return await secured.execute_tool(
-                tool_name, body.arguments, user, _source_ip(request)
-            )
+            return await secured.execute_tool(tool_name, body.arguments, user, _source_ip(request))
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -182,9 +209,25 @@ def create_app(
 
     @app.delete("/admin/api/identities/{subject}")
     async def unblock_identity(
-        subject: str, _: Principal = Depends(require_admin)
+        subject: str, user: Principal = Depends(require_admin)
     ) -> dict[str, Any]:
-        return {"unblocked": secured.containment.blocklist.unblock(subject)}
+        intent = SecurityEvent(
+            event_type="admin_identity_unblock",
+            outcome="authorized",
+            subject=user.subject,
+            details={"target_subject": subject},
+        )
+        secured.audit.append(intent)
+        unblocked = secured.containment.blocklist.unblock(subject)
+        secured.audit.append(
+            SecurityEvent(
+                event_type="admin_identity_unblock",
+                outcome="completed",
+                subject=user.subject,
+                details={"target_subject": subject, "unblocked": unblocked},
+            )
+        )
+        return {"unblocked": unblocked}
 
     return app
 

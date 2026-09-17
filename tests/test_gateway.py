@@ -17,9 +17,7 @@ class FakeProvider:
     def __init__(self) -> None:
         self.calls = 0
 
-    async def generate(
-        self, messages: list[Message], model: str | None = None
-    ) -> tuple[str, str]:
+    async def generate(self, messages: list[Message], model: str | None = None) -> tuple[str, str]:
         self.calls += 1
         return "safe response", model or "test-model"
 

@@ -65,7 +65,8 @@ async function load() {
   document.querySelector("#message").innerHTML = "<p class=ok>Connected</p>";
 }
 document.querySelector("#auth").addEventListener("submit", event => {
-  event.preventDefault(); sessionStorage.setItem("msa-token", document.querySelector("#token").value);
+  event.preventDefault();
+  sessionStorage.setItem("msa-token", document.querySelector("#token").value);
   load().catch(error => document.querySelector("#message").innerHTML =
     `<p class=error>${esc(error.message)}</p>`);
 });

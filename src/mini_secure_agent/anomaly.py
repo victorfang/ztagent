@@ -44,8 +44,7 @@ class SQLiteCounterStore:
                 "(subject TEXT NOT NULL, event_type TEXT NOT NULL, occurred REAL NOT NULL)"
             )
             conn.execute(
-                "CREATE INDEX IF NOT EXISTS events_lookup "
-                "ON events(subject, event_type, occurred)"
+                "CREATE INDEX IF NOT EXISTS events_lookup ON events(subject, event_type, occurred)"
             )
 
     def increment(self, subject: str, event_type: str, window_seconds: int) -> int:
@@ -79,7 +78,9 @@ class AnomalyDetector:
             else MemoryCounterStore()
         )
 
-    def observe_request(self, subject: str, message_count: int, prompt_chars: int) -> list[Detection]:
+    def observe_request(
+        self, subject: str, message_count: int, prompt_chars: int
+    ) -> list[Detection]:
         if not self.config.enabled:
             return []
         findings: list[Detection] = []

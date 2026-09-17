@@ -8,7 +8,6 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-
 Role = Literal["system", "user", "assistant", "tool"]
 
 
