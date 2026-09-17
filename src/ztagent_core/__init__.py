@@ -19,6 +19,7 @@ __all__ = [
     "SecureAgentGateway",
     "ToolRegistry",
     "ToolSpec",
+    "__version__",
     "create_app",
 ]
 

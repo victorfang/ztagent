@@ -145,7 +145,7 @@ class SecureAgentGateway:
                 "input_chars": len(prompt),
                 "output_chars": len(output),
                 "detections_logged": [
-                    item.rule_id for item in [*findings, *output_findings]
+                    item.model_dump() for item in [*findings, *output_findings]
                 ],
                 "policy_decision_id": decision.decision_id,
             },
@@ -192,7 +192,11 @@ class SecureAgentGateway:
             principal,
             request_id,
             source_ip,
-            {"tool": name, "risk": spec.risk},
+            {
+                "tool": name,
+                "risk": spec.risk,
+                "detections_logged": [item.model_dump() for item in findings],
+            },
         )
         try:
             result = await self.tools.execute(name, arguments)
@@ -232,7 +236,13 @@ class SecureAgentGateway:
             principal,
             request_id,
             source_ip,
-            {"tool": name, "risk": spec.risk},
+            {
+                "tool": name,
+                "risk": spec.risk,
+                "detections_logged": [
+                    item.model_dump() for item in [*findings, *output_findings]
+                ],
+            },
         )
         return {"request_id": request_id, "result": result}
 

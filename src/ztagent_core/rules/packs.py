@@ -106,7 +106,14 @@ class RulePackLoader:
                 raise PackError("pack.yaml is reserved and cannot be declared as content")
             expected.add(relative.as_posix())
             path = root.joinpath(*relative.parts)
-            if not path.is_file() or path.is_symlink():
+            current = root
+            unsafe_link = False
+            for part in relative.parts:
+                current /= part
+                if current.is_symlink():
+                    unsafe_link = True
+                    break
+            if not path.is_file() or unsafe_link:
                 raise PackError(f"Missing or unsafe pack content: {item.path}")
             digest = _sha256_file(path)
             if digest != item.sha256:
@@ -226,8 +233,9 @@ def build_pack_archive(source: Path, output: Path) -> str:
                 info.external_attr = 0o100644 << 16
                 info.compress_type = zipfile.ZIP_DEFLATED
                 archive.writestr(info, root.joinpath(*PurePosixPath(name).parts).read_bytes())
+    verified = RulePackLoader().load(temporary)
     temporary.replace(output)
-    return loaded.digest
+    return verified.digest
 
 
 def install_pack(
@@ -258,14 +266,24 @@ def install_pack(
             shutil.copy2(source, archive_path)
         if signature_path:
             shutil.copy2(signature_path, staging / "pack.signature.json")
+        verified = loader.load(
+            archive_path,
+            staging / "pack.signature.json" if signature_path else None,
+        )
+        if (
+            verified.manifest.name != loaded.manifest.name
+            or verified.manifest.version != loaded.manifest.version
+            or verified.digest != loaded.digest
+        ):
+            raise PackError("Rule Pack source changed during installation")
         (staging / "installed.json").write_text(
             json.dumps(
                 {
                     "name": loaded.manifest.name,
                     "version": loaded.manifest.version,
-                    "digest": loaded.digest,
-                    "signed": loaded.signed,
-                    "signer_key_id": loaded.signer_key_id,
+                    "digest": verified.digest,
+                    "signed": verified.signed,
+                    "signer_key_id": verified.signer_key_id,
                 },
                 sort_keys=True,
                 indent=2,
@@ -383,7 +401,8 @@ def _safe_yaml(path: Path) -> Any:
     aliases = sum(1 for token in yaml.scan(text) if isinstance(token, AliasToken))
     if aliases > MAX_ALIASES:
         raise PackError(f"YAML file contains too many aliases: {path.name}")
-    return yaml.load(text, Loader=_UniqueKeyLoader)
+    # _UniqueKeyLoader subclasses SafeLoader; it only adds duplicate-key rejection.
+    return yaml.load(text, Loader=_UniqueKeyLoader)  # noqa: S506
 
 
 def _safe_json(path: Path) -> Any:

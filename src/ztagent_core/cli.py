@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import cast
 
 import typer
+from pydantic import BaseModel
 
 from .config import load_config
 from .guardrails import load_guardrail_scanner
@@ -125,7 +126,7 @@ def pack_schema(
     kind: str = typer.Argument("rules", help="rules, manifest, or signature"),
 ) -> None:
     """Print the canonical JSON Schema for Rule IR or pack metadata."""
-    models = {
+    models: dict[str, type[BaseModel]] = {
         "rules": RuleDocument,
         "manifest": PackManifest,
         "signature": PackSignature,
