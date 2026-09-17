@@ -21,6 +21,24 @@ A commercial **ztagent Enterprise** edition is planned for organizations that
 need vendor-supported controls beyond this core. Custom policy, tool, and
 deployment work is available as consulting through [ztagent.ai](https://ztagent.ai).
 
+## Deployment modes
+
+The core is intentionally usable in two forms:
+
+- **API gateway:** `ztagent serve` runs the FastAPI application. It verifies
+  bearer tokens at HTTP ingress and centralizes provider/tool access,
+  administration, and security state.
+- **Python SDK:** applications import `ztagent_core` and invoke
+  `SecureAgentGateway` in process. The security pipeline is the same, but the
+  caller must establish trusted identity and its own HTTP/browser boundary.
+
+A hybrid can place the API gateway at centralized ingress and the SDK beside a
+separate tool worker. Every high-impact tool must authorize immediately before
+execution; do not rely only on an earlier gateway decision.
+
+See [API gateway and SDK deployment modes](deployment-modes.md) for code,
+topologies, caller responsibilities, and the selection matrix.
+
 ## Request flow
 
 ```text

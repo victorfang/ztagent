@@ -10,6 +10,26 @@ Author: **[Victor Fang](https://VictorFang.com)** ·
 It provides useful secure defaults without replacing your identity provider,
 reverse proxy, model host, or SIEM.
 
+## Use it as an API gateway or SDK
+
+**ZTAgent supports both deployment modes:**
+
+- **API gateway:** run `ztagent serve` to expose authenticated HTTP endpoints for
+  model and registered-tool calls. This centralizes policy, provider
+  credentials, audit, anomaly detection, containment, and administration for
+  clients in any language.
+- **Python SDK:** import `ztagent_core` and call `SecureAgentGateway` or
+  `create_gateway()` inside an existing Python/LangChain application. This uses
+  the same enforcement pipeline without an internal HTTP hop.
+
+ZTAgent is an AI application security gateway, not a replacement for an edge
+reverse proxy, WAF, DDoS control, or cloud API-management service. In SDK mode,
+the embedding application owns ingress authentication and must derive
+`Principal` from trusted identity claims.
+
+See [API gateway and SDK deployment modes](docs/deployment-modes.md) for setup
+examples, security responsibilities, a hybrid topology, and a selection guide.
+
 ## Editions and services
 
 | Offering | What it is |
@@ -46,7 +66,7 @@ Contact: [ztagent.ai](https://ztagent.ai) · [VictorFang.com](https://VictorFang
 - Protected, dependency-free web administration portal
 - Friendly project wizard and operational checks
 
-## Quick start
+## Quick start: API gateway
 
 Requires Python 3.11+ and, for policy enforcement, Docker or an OPA service.
 
@@ -78,6 +98,27 @@ curl http://127.0.0.1:8000/v1/agent/run \
   -H 'Authorization: Bearer YOUR_OIDC_TOKEN' \
   -d '{"messages":[{"role":"user","content":"Summarize this report"}]}'
 ```
+
+## Quick start: Python SDK
+
+```python
+from ztagent_core.api import create_gateway
+from ztagent_core.auth import JWTAuthenticator
+from ztagent_core.config import load_config
+from ztagent_core.models import AgentRequest, Message
+
+config = load_config("config/agent.yaml")
+gateway = create_gateway(config)
+principal = JWTAuthenticator(config.auth).verify(access_token)
+
+response = await gateway.run(
+    AgentRequest(messages=[Message(role="user", content="Summarize this report")]),
+    principal,
+)
+```
+
+The access token must come from the application's authenticated request
+boundary. Do not construct identity or roles from request JSON or model output.
 
 ## Provider setup
 
