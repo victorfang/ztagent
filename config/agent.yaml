@@ -1,0 +1,48 @@
+# Safe local demo defaults. Harden authentication and OPA settings for production.
+server:
+  host: 127.0.0.1
+  port: 8000
+  environment: development
+  admin_roles: [msa-admin]
+
+auth:
+  enabled: false
+  issuer: https://keycloak.example/realms/agents
+  audience: mini-secure-agent
+  jwks_url: https://keycloak.example/realms/agents/protocol/openid-connect/certs
+  algorithms: [RS256]
+  role_claim: realm_access.roles
+
+provider:
+  kind: openai
+  model: gpt-5-mini
+  allowed_models: [gpt-5-mini]
+  api_key_env: OPENAI_API_KEY
+
+policy:
+  opa_url: http://127.0.0.1:8181
+  decision_path: mini_secure_agent/authz/allow
+  fail_open: false
+  development_allow_without_opa: true
+
+guardrails:
+  signatures_file: config/signatures.yaml
+  regex_timeout_ms: 50
+  max_prompt_chars: 100000
+  block_score: 80
+
+audit:
+  path: data/audit.jsonl
+  hmac_key_env: MSA_AUDIT_HMAC_KEY
+  log_prompt_content: false
+
+anomaly:
+  enabled: true
+  state_backend: sqlite
+  sqlite_path: data/state.db
+  requests_per_24h: 1000
+  blocked_events_per_24h: 5
+
+containment:
+  enabled: true
+  blocklist_path: data/blocked_identities.json

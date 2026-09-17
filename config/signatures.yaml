@@ -1,0 +1,30 @@
+version: 1
+signatures:
+  - id: pi.ignore-instructions
+    description: Attempts to override prior or system instructions
+    pattern: '(?:ignore|disregard|forget)\s+(?:all\s+)?(?:previous|prior|system)\s+instructions?'
+    category: prompt-injection
+    severity: high
+    action: block
+    score: 90
+  - id: pi.system-exfiltration
+    description: Attempts to disclose hidden system or developer instructions
+    pattern: '(?:reveal|print|show|repeat|leak).{0,40}(?:system|developer|hidden)\s+(?:prompt|instructions?)'
+    category: prompt-exfiltration
+    severity: high
+    action: block
+    score: 90
+  - id: pi.role-impersonation
+    description: Embedded role boundary or instruction marker
+    pattern: '(?:^|\n)\s*(?:system|developer)\s*:\s*'
+    category: prompt-injection
+    severity: medium
+    action: block
+    score: 80
+  - id: tool.shell-destructive
+    description: Destructive shell command in a prompt or tool argument
+    pattern: '(?:rm\s+-rf\s+[/~]|mkfs(?:\.|\s)|:\(\)\s*\{\s*:\|:&\s*\})'
+    category: unsafe-tool-use
+    severity: critical
+    action: contain
+    score: 100
