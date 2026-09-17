@@ -23,7 +23,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-langchain = ["langchain-core>=0.3,<2"]
+langchain = ["langchain-core>=1.6.3,<2"]
+demos = [
+  "langchain-core>=1.6.3,<2",
+  "langchain-openai>=1.6.2,<2",
+]
 dev = [
   "mypy>=1.17,<2",
   "pytest>=8.4,<10",
