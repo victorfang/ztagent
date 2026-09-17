@@ -73,3 +73,16 @@ async def test_blocked_rerun_does_not_report_old_deliveries(tmp_path: Path) -> N
     assert len(delivered.outbox) == 1
     assert blocked.status == "blocked"
     assert blocked.outbox == []
+
+
+def test_demo_disables_external_containment_integrations(tmp_path: Path) -> None:
+    config = AppConfig()
+    config.containment.webhook_url = "https://security.example.test/hook"
+    config.containment.keycloak_admin_url = "https://identity.example.test"
+    config.containment.keycloak_realm = "agents"
+
+    runner = create_demo_runner(config, tmp_path)
+
+    assert runner.gateway.containment.config.webhook_url is None
+    assert runner.gateway.containment.config.keycloak_admin_url is None
+    assert runner.gateway.containment.config.keycloak_realm is None

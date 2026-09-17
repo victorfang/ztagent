@@ -277,7 +277,12 @@ def create_demo_runner(
         anomaly=AnomalyDetector(config.anomaly.model_copy(update={"state_backend": "memory"})),
         containment=ContainmentService(
             config.containment.model_copy(
-                update={"blocklist_path": data_dir / "blocked_identities.json"}
+                update={
+                    "blocklist_path": data_dir / "blocked_identities.json",
+                    "webhook_url": None,
+                    "keycloak_admin_url": None,
+                    "keycloak_realm": None,
+                }
             )
         ),
         tools=tools,
