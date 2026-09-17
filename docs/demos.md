@@ -112,4 +112,5 @@ integration should add:
 
 The communication tool is intentionally not connected to SMTP or social APIs.
 That keeps the demo safe and makes the authorization result—not an external
-account—the focus.
+account—the focus. Demo construction also disables containment webhooks and
+Keycloak administration calls, even if the main application configures them.
