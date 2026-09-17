@@ -115,9 +115,7 @@ authenticator = JWTAuthenticator(config.auth)
 principal = authenticator.verify(access_token)
 
 response = await gateway.run(
-    AgentRequest(
-        messages=[Message(role="user", content="Summarize this report")]
-    ),
+    AgentRequest(messages=[Message(role="user", content="Summarize this report")]),
     principal,
     source_ip=request_source_ip,
 )
