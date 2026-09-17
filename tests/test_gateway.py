@@ -13,7 +13,7 @@ from ztagent_core.audit import AuditLog
 from ztagent_core.config import AppConfig
 from ztagent_core.containment import ContainmentService
 from ztagent_core.gateway import SecureAgentGateway, SecurityDenied
-from ztagent_core.guardrails import SignatureScanner
+from ztagent_core.guardrails import Signature, SignatureScanner
 from ztagent_core.models import AgentRequest, Decision, Message, Principal
 from ztagent_core.tools import ToolRegistry, ToolSpec
 
@@ -77,6 +77,38 @@ async def test_benign_request_reaches_provider(tmp_path: Path) -> None:
 
     assert response.output == "safe response"
     assert provider.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_model_output_is_scanned_before_delivery(tmp_path: Path) -> None:
+    secured, provider = gateway(tmp_path)
+    secured.scanner = SignatureScanner(
+        [
+            Signature(
+                id="test.model-output",
+                description="Block leaked model output",
+                pattern="sensitive model secret",
+                stages=("model_output",),
+            )
+        ]
+    )
+
+    async def unsafe_generate(
+        messages: list[Message], model: str | None = None
+    ) -> tuple[str, str]:
+        provider.calls += 1
+        return "sensitive model secret", model or "test-model"
+
+    provider.generate = unsafe_generate  # type: ignore[method-assign]
+
+    with pytest.raises(SecurityDenied, match="Model output"):
+        await secured.run(
+            AgentRequest(messages=[Message(role="user", content="Benign request")]),
+            Principal(subject="user-1"),
+        )
+
+    events = secured.audit.read()
+    assert events[-1]["event"]["event_type"] == "model_output_detection"
 
 
 class NoArguments(BaseModel):

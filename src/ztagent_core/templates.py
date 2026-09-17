@@ -42,6 +42,9 @@ policy:
 
 guardrails:
   signatures_file: config/signatures.yaml
+  packs: []
+  # trust_store: config/trusted-publishers.yaml
+  require_signed_packs: false
   regex_timeout_ms: 50
   max_prompt_chars: 100000
   block_score: 80

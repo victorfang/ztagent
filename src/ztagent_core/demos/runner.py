@@ -18,7 +18,7 @@ from ..audit import AuditLog
 from ..config import AppConfig
 from ..containment import ContainmentService
 from ..gateway import SecureAgentGateway, SecurityDenied
-from ..guardrails import SignatureScanner
+from ..guardrails import load_guardrail_scanner
 from ..integrations import as_langchain_runnable
 from ..models import Decision, Message, Principal
 from ..policy import OPAClient, PolicyDecisionPoint
@@ -272,9 +272,7 @@ def create_demo_runner(
     gateway = SecureAgentGateway(
         config=config,
         provider=provider,
-        scanner=SignatureScanner.from_file(
-            config.guardrails.signatures_file, config.guardrails.regex_timeout_ms
-        ),
+        scanner=load_guardrail_scanner(config.guardrails),
         policy=policy,
         audit=audit,
         anomaly=AnomalyDetector(config.anomaly.model_copy(update={"state_backend": "memory"})),

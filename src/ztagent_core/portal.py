@@ -63,6 +63,7 @@ async function load() {
   const values = [
     ["Events", summary.events], ["Blocked", summary.blocked_events],
     ["Contained identities", summary.contained_identities],
+    ["Rules", summary.guardrail_rules], ["Rule Packs", summary.rule_packs],
     ["Audit chain", summary.audit_chain_valid ? "Verified" : "Invalid"],
     ["Provider", `${summary.provider} / ${summary.model}`], ["Environment", summary.environment]
   ];

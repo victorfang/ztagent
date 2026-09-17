@@ -67,8 +67,18 @@ class PolicyConfig(BaseModel):
     development_allow_without_opa: bool = False
 
 
+class RulePackSourceConfig(BaseModel):
+    path: Path
+    signature: Path | None = None
+    required: bool = True
+    require_signature: bool = False
+
+
 class GuardrailConfig(BaseModel):
     signatures_file: Path = Path("config/signatures.yaml")
+    packs: list[RulePackSourceConfig] = []
+    trust_store: Path | None = None
+    require_signed_packs: bool = False
     regex_timeout_ms: int = Field(default=50, ge=1, le=1000)
     max_prompt_chars: int = Field(default=100_000, ge=100)
     block_score: int = Field(default=80, ge=1)

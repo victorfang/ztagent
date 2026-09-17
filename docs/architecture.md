@@ -49,12 +49,12 @@ FastAPI API gateway ── body limits / secure headers
   │
   ├─ JWT verification ── JWKS, issuer, audience, expiry, fixed algorithms
   ├─ local containment check
-  ├─ signature guardrails ── normalized input, bounded regex evaluation
+  ├─ model-input Rule Packs ── canonical IR, normalized, bounded evaluation
   ├─ anomaly detector ── per-event heuristic + rolling 24-hour counters
   ├─ OPA PEP → PDP ── subject/action/resource; fail closed
   │
-  ├─ model adapter ── OpenAI / Anthropic / OpenAI-compatible
-  └─ tool registry ── allowlisted name / typed arguments / risk
+  ├─ model adapter → model-output Rule Packs
+  └─ tool-input Rule Packs → registry → tool-output Rule Packs
           │
           ▼
     HMAC-chained JSONL audit → portal / external log shipper
@@ -90,18 +90,22 @@ security boundaries.
 
 ## Detection and response behavior
 
-1. Signature rules are trusted configuration. Inputs are NFKC-normalized and
-   each regex has a timeout to reduce denial-of-service risk.
-2. Any `block`/`contain` finding blocks immediately. Multiple lower-level
+1. Canonical Rule IR applies explicit rules at model input/output and tool
+   input/output boundaries. Content is NFKC-normalized and each regex has a
+   timeout to reduce denial-of-service risk.
+2. Rule Packs are data-only, hash-validated, version-constrained snapshots.
+   Optional commercial packs add detached Ed25519 publisher signatures. See
+   [Rule IR and Rule Packs](rule-packs.md).
+3. Any `block`/`contain` finding blocks immediately. Multiple lower-level
    findings can cross `block_score`.
-3. SQLite is the small-deployment default for counters. Memory mode is useful
+4. SQLite is the small-deployment default for counters. Memory mode is useful
    for stateless containers but resets on restart and is per-process.
-4. Repeated blocked requests can contain an identity. Local denial is applied
+5. Repeated blocked requests can contain an identity. Local denial is applied
    before external response actions, so a webhook or Keycloak outage cannot
    restore access.
-5. Human administrators may unblock a subject through the protected admin API.
+6. Human administrators may unblock a subject through the protected admin API.
    This action should be placed behind an approval workflow in higher-risk use.
-6. Tool authorization intent is durably audited before a handler runs, followed
+7. Tool authorization intent is durably audited before a handler runs, followed
    by completion/error. Side-effecting handlers should also implement business
    idempotency because a process failure can leave execution outcome uncertain.
 

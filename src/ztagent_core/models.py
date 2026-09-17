@@ -48,6 +48,10 @@ class Detection(BaseModel):
     action: Literal["log", "block", "contain"]
     score: int = Field(default=0, ge=0, le=100)
     detail: str
+    stage: Literal["model_input", "model_output", "tool_input", "tool_output"] | None = None
+    pack: str | None = None
+    pack_version: str | None = None
+    pack_digest: str | None = None
 
 
 class Decision(BaseModel):

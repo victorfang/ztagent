@@ -35,6 +35,7 @@ examples, security responsibilities, a hybrid topology, and a selection guide.
 | Offering | What it is |
 |---|---|
 | **ztagent-core** (this repository) | Apache-2.0 foundation you can self-host, audit, and extend |
+| **ZTAgent commercial Rule Packs** | Optional signed, curated guardrails using the same data-only Rule IR |
 | **ztagent Enterprise** | Commercial edition for production organizations (coming) |
 | **Consulting** | Custom policy, tools, threat modeling, and deployment help |
 
@@ -57,7 +58,9 @@ Contact: [ztagent.ai](https://ztagent.ai) · [VictorFang.com](https://VictorFang
 - OIDC JWT validation for Keycloak, Auth0, and compatible identity providers
 - OPA policy enforcement point/client with fail-closed production defaults
 - Registered, schema-validated tool gateway with risk metadata
-- YAML signature rules with Unicode normalization and regex timeouts
+- Canonical staged Rule IR and composable, provenance-aware Rule Packs
+- Optional Ed25519-signed commercial packs with fail-closed verification
+- Model-input, model-output, tool-input, and tool-output enforcement stages
 - OpenAI Responses, Anthropic Messages, and OpenAI-compatible model APIs
 - Optional LangChain `Runnable` adapter; the core remains orchestrator-neutral
 - Stateless request heuristics and memory/SQLite rolling 24-hour counters
@@ -231,7 +234,9 @@ ztagent serve              Start the gateway and portal
 
 See [docs/architecture.md](docs/architecture.md) for the request flow, threat
 coverage, design decisions, limitations, deployment checklist, and research
-references. See [SECURITY.md](SECURITY.md) for vulnerability reporting and
+references. See [Rule IR and Rule Packs](docs/rule-packs.md) for pack authoring,
+activation, signed commercial distribution, and its security model. See
+[SECURITY.md](SECURITY.md) for vulnerability reporting and
 operational security guidance. The
 [blast-radius threat-modeling tutorial](docs/blast-radius-threat-modeling.md)
 provides worked examples for the included agents.

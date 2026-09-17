@@ -3,19 +3,29 @@
 # X: https://X.com/vicfcs
 # LinkedIn: https://www.linkedin.com/in/drvictorfang
 
-"""Deterministic signature guardrails for prompts and tool arguments."""
+"""Backward-compatible signatures backed by the canonical staged Rule IR."""
 
 from __future__ import annotations
 
-import unicodedata
+import hashlib
 from pathlib import Path
 from typing import Literal
 
-import regex
 import yaml
 from pydantic import BaseModel, Field
 
+from .config import GuardrailConfig
 from .models import Detection
+from .rules.engine import GuardrailSet
+from .rules.models import (
+    GuardrailContext,
+    GuardrailStage,
+    LoadedPack,
+    PackContent,
+    PackManifest,
+    RuleDefinition,
+)
+from .rules.packs import RulePackLoader
 
 
 class Signature(BaseModel):
@@ -27,6 +37,11 @@ class Signature(BaseModel):
     action: Literal["log", "block", "contain"] = "block"
     score: int = Field(default=80, ge=0, le=100)
     enabled: bool = True
+    stages: tuple[GuardrailStage, ...] = (
+        "model_input",
+        "tool_input",
+        "tool_output",
+    )
 
 
 class SignatureFile(BaseModel):
@@ -35,54 +50,121 @@ class SignatureFile(BaseModel):
 
 
 class SignatureScanner:
-    def __init__(self, signatures: list[Signature], timeout_ms: int = 50) -> None:
-        self.timeout_seconds = timeout_ms / 1000
-        self._signatures = [
-            (rule, regex.compile(rule.pattern, regex.IGNORECASE | regex.MULTILINE))
+    def __init__(
+        self,
+        signatures: list[Signature],
+        timeout_ms: int = 50,
+        *,
+        additional_packs: list[LoadedPack] | None = None,
+        legacy_digest: str | None = None,
+    ) -> None:
+        rules = tuple(
+            RuleDefinition(
+                id=rule.id,
+                description=rule.description,
+                stages=rule.stages,
+                engine="regex",
+                pattern=rule.pattern,
+                category=rule.category,
+                severity=rule.severity,
+                action=rule.action,
+                score=rule.score,
+                enabled=rule.enabled,
+            )
             for rule in signatures
-            if rule.enabled
-        ]
+        )
+        digest = legacy_digest or hashlib.sha256(
+            "\n".join(rule.model_dump_json() for rule in rules).encode()
+        ).hexdigest()
+        legacy_pack = LoadedPack(
+            manifest=PackManifest(
+                name="local.legacy-signatures",
+                version="1.0.0",
+                publisher="local",
+                description="Backward-compatible signatures.yaml rules",
+                license="project-local",
+                contents=(
+                    PackContent(path="signatures.yaml", sha256="0" * 64, kind="rules"),
+                ),
+            ),
+            digest=digest,
+            signed=False,
+            rules=rules,
+        )
+        self._guardrails = GuardrailSet.compile(
+            [legacy_pack, *(additional_packs or [])],
+            default_timeout_ms=timeout_ms,
+        )
 
     @property
     def rule_count(self) -> int:
-        return len(self._signatures)
+        return self._guardrails.rule_count
+
+    @property
+    def packs(self) -> tuple[LoadedPack, ...]:
+        return self._guardrails.packs
 
     @classmethod
     def from_file(cls, path: Path, timeout_ms: int = 50) -> SignatureScanner:
+        return cls.from_sources(path, timeout_ms=timeout_ms)
+
+    @classmethod
+    def from_sources(
+        cls,
+        path: Path,
+        *,
+        timeout_ms: int = 50,
+        packs: list[LoadedPack] | None = None,
+    ) -> SignatureScanner:
         try:
             raw = yaml.safe_load(path.read_text(encoding="utf-8"))
             rules = SignatureFile.model_validate(raw)
         except (OSError, ValueError, yaml.YAMLError) as exc:
             raise ValueError(f"Cannot load signature rules from {path}: {exc}") from exc
-        return cls(rules.signatures, timeout_ms)
+        return cls(
+            rules.signatures,
+            timeout_ms,
+            additional_packs=packs,
+            legacy_digest=hashlib.sha256(path.read_bytes()).hexdigest(),
+        )
 
     def scan(self, text: str) -> list[Detection]:
-        normalized = unicodedata.normalize("NFKC", text)
-        findings: list[Detection] = []
-        for rule, pattern in self._signatures:
-            try:
-                matched = pattern.search(normalized, timeout=self.timeout_seconds)
-            except TimeoutError:
-                findings.append(
-                    Detection(
-                        rule_id=rule.id,
-                        category="guardrail-error",
-                        severity="high",
-                        action="block",
-                        score=100,
-                        detail="Signature evaluation timed out; fail-closed",
-                    )
-                )
-                continue
-            if matched:
-                findings.append(
-                    Detection(
-                        rule_id=rule.id,
-                        category=rule.category,
-                        severity=rule.severity,
-                        action=rule.action,
-                        score=rule.score,
-                        detail=rule.description,
-                    )
-                )
-        return findings
+        return self.inspect("model_input", text)
+
+    def inspect(
+        self,
+        stage: GuardrailStage,
+        text: str,
+        *,
+        request_id: str | None = None,
+        subject: str | None = None,
+        resource: dict[str, object] | None = None,
+    ) -> list[Detection]:
+        return self._guardrails.inspect(
+            GuardrailContext(
+                stage=stage,
+                content=text,
+                request_id=request_id,
+                subject=subject,
+                resource=resource or {},
+            )
+        )
+
+
+def load_guardrail_scanner(config: GuardrailConfig) -> SignatureScanner:
+    """Load one immutable legacy-plus-pack rule snapshot from configuration."""
+    packs: list[LoadedPack] = []
+    for source in config.packs:
+        if not source.path.exists() and not source.required:
+            continue
+        packs.append(
+            RulePackLoader(
+                trust_store=config.trust_store,
+                require_signature=config.require_signed_packs or source.require_signature,
+            ).load(source.path, source.signature)
+        )
+    return SignatureScanner.from_sources(
+        config.signatures_file,
+        timeout_ms=config.regex_timeout_ms,
+        packs=packs,
+    )

@@ -4,6 +4,7 @@
 # LinkedIn: https://www.linkedin.com/in/drvictorfang
 
 import os
+import json
 from pathlib import Path
 
 import pytest
@@ -42,3 +43,12 @@ def test_live_demo_rejects_opa_development_bypass() -> None:
 
     assert result.exit_code != 0
     assert "require fail-closed OPA" in result.output
+
+
+def test_pack_schema_exports_canonical_rule_ir() -> None:
+    result = CliRunner().invoke(app, ["pack", "schema", "rules"])
+
+    assert result.exit_code == 0
+    schema = json.loads(result.output)
+    assert schema["properties"]["schema_version"]["const"] == 1
+    assert "rules" in schema["properties"]

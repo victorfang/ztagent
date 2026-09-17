@@ -34,3 +34,26 @@ def test_production_rejects_symmetric_jwt_algorithm() -> None:
 
     with pytest.raises(ValueError, match="asymmetric"):
         config.validate_security()
+
+
+def test_rule_pack_configuration_is_explicit(tmp_path: Path) -> None:
+    path = tmp_path / "agent.yaml"
+    path.write_text(
+        """
+guardrails:
+  trust_store: config/trusted-publishers.yaml
+  require_signed_packs: true
+  packs:
+    - path: packs/commercial.ztpack
+      signature: packs/commercial.signature.json
+      required: true
+      require_signature: true
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(path)
+
+    assert config.guardrails.require_signed_packs is True
+    assert config.guardrails.packs[0].path == Path("packs/commercial.ztpack")
+    assert config.guardrails.packs[0].require_signature is True
