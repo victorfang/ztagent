@@ -10,12 +10,8 @@ from mini_secure_agent.demos.runner import create_demo_runner
 async def test_stock_injection_contrasts_before_and_after(tmp_path: Path) -> None:
     config = AppConfig()
 
-    before = await create_demo_runner(config, tmp_path / "before").run(
-        "before", "stock-injection"
-    )
-    after = await create_demo_runner(config, tmp_path / "after").run(
-        "after", "stock-injection"
-    )
+    before = await create_demo_runner(config, tmp_path / "before").run("before", "stock-injection")
+    after = await create_demo_runner(config, tmp_path / "after").run("after", "stock-injection")
 
     assert before.status == "completed"
     assert before.outbox[0]["recipient"] == "attacker@example.test"
@@ -63,3 +59,17 @@ async def test_article_only_never_delivers(tmp_path: Path) -> None:
     assert result.status == "completed"
     assert result.model_output
     assert result.outbox == []
+
+
+@pytest.mark.asyncio
+async def test_blocked_rerun_does_not_report_old_deliveries(tmp_path: Path) -> None:
+    config = AppConfig()
+    privileged = create_demo_runner(config, tmp_path, privileged=True)
+    delivered = await privileged.run("after", "unauthorized-publish")
+    unprivileged = create_demo_runner(config, tmp_path)
+
+    blocked = await unprivileged.run("after", "unauthorized-publish")
+
+    assert len(delivered.outbox) == 1
+    assert blocked.status == "blocked"
+    assert blocked.outbox == []

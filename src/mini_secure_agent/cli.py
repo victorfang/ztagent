@@ -99,7 +99,7 @@ def demo(
     data_dir: Path = typer.Option(Path("data/demos"), help="Sandbox output directory"),
     live: bool = typer.Option(False, help="Use the configured OpenAI API instead of fixtures"),
     privileged: bool = typer.Option(
-        False, help="Give the secure demo the role required for publishing"
+        False, help="Simulate the role mapping required for publishing"
     ),
 ) -> None:
     """Contrast an intentionally vulnerable LangChain agent with the secured version."""
@@ -114,6 +114,10 @@ def demo(
     loaded = load_config(config)
     if live and loaded.provider.kind != "openai":
         raise typer.BadParameter("live demos currently require provider.kind: openai")
+    if live and (loaded.policy.fail_open or loaded.policy.development_allow_without_opa):
+        raise typer.BadParameter(
+            "live demos require fail-closed OPA; disable policy development bypasses"
+        )
     selected_modes = ["before", "after"] if mode == "both" else [mode]
     typer.secho(
         "DEMO SAFETY: all email, DM, and social delivery stays in a local JSONL sandbox.",
@@ -132,8 +136,10 @@ def demo(
                 cast("DemoScenario", scenario),
             )
         )
-        color = typer.colors.RED if result.status == "completed" and selected == "before" else (
-            typer.colors.GREEN
+        color = (
+            typer.colors.RED
+            if result.status == "completed" and selected == "before"
+            else (typer.colors.GREEN)
         )
         typer.secho(f"\n{selected.upper()}: {result.status.upper()}", fg=color, bold=True)
         typer.echo(result.explanation)

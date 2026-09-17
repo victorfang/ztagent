@@ -34,6 +34,7 @@ class DemoOutbox:
         self.path = path
         self._lock = threading.Lock()
         path.parent.mkdir(parents=True, exist_ok=True)
+        self._starting_count = len(self.read())
 
     def deliver(self, arguments: BaseModel) -> dict[str, str]:
         request = DeliveryArgs.model_validate(arguments)
@@ -56,10 +57,11 @@ class DemoOutbox:
         if not self.path.exists():
             return []
         return [
-            json.loads(line)
-            for line in self.path.read_text(encoding="utf-8").splitlines()
-            if line
+            json.loads(line) for line in self.path.read_text(encoding="utf-8").splitlines() if line
         ]
+
+    def read_current_run(self) -> list[dict[str, str]]:
+        return self.read()[self._starting_count :]
 
 
 def lookup_stock(arguments: BaseModel) -> dict[str, str | float]:
