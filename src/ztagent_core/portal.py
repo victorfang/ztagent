@@ -10,7 +10,7 @@ ADMIN_HTML = r"""<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Mini Secure Agent · Admin</title>
+  <title>ztagent.ai · Admin</title>
   <style>
     :root { color-scheme: dark; --bg:#0b1020; --card:#141b2d; --muted:#9ca8bf;
       --accent:#66e3c4; --danger:#ff718b; --line:#28334b; }
@@ -34,7 +34,7 @@ ADMIN_HTML = r"""<!doctype html>
   </style>
 </head>
 <body><main>
-  <header><div><h1>Mini Secure Agent</h1><p>Security operations console</p></div>
+  <header><div><h1>ztagent-core</h1><p>Open-source security console from ztagent.ai</p></div>
     <form id="auth"><input id="token" type="password" autocomplete="off"
       placeholder="Admin bearer token" aria-label="Admin bearer token">
       <button>Connect</button></form></header>
@@ -44,12 +44,13 @@ ADMIN_HTML = r"""<!doctype html>
     <div style="overflow:auto"><table><thead><tr><th>Time</th><th>Type</th><th>Outcome</th>
       <th>Identity</th><th>Details</th></tr></thead><tbody id="events"></tbody></table></div>
   </section>
-  <footer>By <a href="https://VictorFang.com" target="_blank" rel="noopener">Victor Fang</a>
+  <footer><a href="https://ztagent.ai" target="_blank" rel="noopener">ztagent.ai</a>
+    · by <a href="https://VictorFang.com" target="_blank" rel="noopener">Victor Fang</a>
     · <a href="https://X.com/vicfcs" target="_blank" rel="noopener">X</a>
     · <a href="https://www.linkedin.com/in/drvictorfang" target="_blank"
       rel="noopener">LinkedIn</a></footer>
 </main><script>
-const auth = () => ({Authorization: `Bearer ${sessionStorage.getItem("msa-token") || ""}`});
+const auth = () => ({Authorization: `Bearer ${sessionStorage.getItem("ztagent-token") || ""}`});
 const esc = value => String(value ?? "").replace(/[&<>"']/g,
   c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 async function load() {
@@ -76,9 +77,9 @@ async function load() {
 }
 document.querySelector("#auth").addEventListener("submit", event => {
   event.preventDefault();
-  sessionStorage.setItem("msa-token", document.querySelector("#token").value);
+  sessionStorage.setItem("ztagent-token", document.querySelector("#token").value);
   load().catch(error => document.querySelector("#message").innerHTML =
     `<p class=error>${esc(error.message)}</p>`);
 });
-if (sessionStorage.getItem("msa-token")) load().catch(() => {});
+if (sessionStorage.getItem("ztagent-token")) load().catch(() => {});
 </script></body></html>"""

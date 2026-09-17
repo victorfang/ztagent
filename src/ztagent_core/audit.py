@@ -64,7 +64,7 @@ class AuditLog:
         value = os.getenv(key_env)
         if not value:
             raise RuntimeError(
-                f"{key_env} is required; generate one with `msa secret` and store it securely"
+                f"{key_env} is required; generate one with `ztagent secret` and store it securely"
             )
         return cls(path, value.encode(), log_prompt_content)
 

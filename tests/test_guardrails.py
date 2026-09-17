@@ -5,7 +5,7 @@
 
 from pathlib import Path
 
-from mini_secure_agent.guardrails import SignatureScanner
+from ztagent_core.guardrails import SignatureScanner
 
 
 def test_prompt_injection_signature_detects_normalized_text() -> None:

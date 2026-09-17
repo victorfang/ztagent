@@ -5,8 +5,8 @@
 
 import pytest
 
-from mini_secure_agent.config import PolicyConfig
-from mini_secure_agent.policy import OPAClient
+from ztagent_core.config import PolicyConfig
+from ztagent_core.policy import OPAClient
 
 
 @pytest.mark.asyncio

@@ -21,13 +21,13 @@ class ServerConfig(BaseModel):
     port: int = Field(default=8000, ge=1, le=65535)
     environment: Literal["development", "test", "production"] = "development"
     max_body_bytes: int = Field(default=262_144, ge=1024)
-    admin_roles: list[str] = ["msa-admin"]
+    admin_roles: list[str] = ["ztagent-admin"]
 
 
 class AuthConfig(BaseModel):
     enabled: bool = True
     issuer: str = "https://identity.example/realms/agents"
-    audience: str = "mini-secure-agent"
+    audience: str = "ztagent-core"
     jwks_url: str = "https://identity.example/realms/agents/protocol/openid-connect/certs"
     algorithms: list[str] = ["RS256"]
     role_claim: str = "realm_access.roles"
@@ -61,7 +61,7 @@ class ProviderConfig(BaseModel):
 
 class PolicyConfig(BaseModel):
     opa_url: str = "http://127.0.0.1:8181"
-    decision_path: str = "mini_secure_agent/authz/allow"
+    decision_path: str = "ztagent_core/authz/allow"
     timeout_seconds: float = Field(default=2, gt=0, le=30)
     fail_open: bool = False
     development_allow_without_opa: bool = False
@@ -76,7 +76,7 @@ class GuardrailConfig(BaseModel):
 
 class AuditConfig(BaseModel):
     path: Path = Path("data/audit.jsonl")
-    hmac_key_env: str = "MSA_AUDIT_HMAC_KEY"
+    hmac_key_env: str = "ZTAGENT_AUDIT_HMAC_KEY"
     log_prompt_content: bool = False
 
 
@@ -129,12 +129,18 @@ class AppConfig(BaseModel):
                 raise ValueError("Unsafe production configuration: " + "; ".join(errors))
 
 
+ENV_PREFIX = "ZTAGENT_"
+
+
 def _env_overrides(data: dict[str, Any]) -> dict[str, Any]:
-    """Apply MSA_SECTION__FIELD values without putting secrets in YAML."""
+    """Apply ZTAGENT_SECTION__FIELD values without putting secrets in YAML."""
     for key, value in os.environ.items():
-        if not key.startswith("MSA_") or "__" not in key:
+        if not key.startswith(ENV_PREFIX) or "__" not in key:
             continue
-        section, field = key[4:].lower().split("__", 1)
+        remainder = key[len(ENV_PREFIX) :]
+        if "__" not in remainder:
+            continue
+        section, field = remainder.lower().split("__", 1)
         if section not in AppConfig.model_fields:
             continue
         parsed: Any
@@ -147,7 +153,7 @@ def _env_overrides(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_config(path: str | Path | None = None) -> AppConfig:
-    selected_path = path if path is not None else os.getenv("MSA_CONFIG") or "config/agent.yaml"
+    selected_path = path if path is not None else os.getenv("ZTAGENT_CONFIG") or "config/agent.yaml"
     config_path = Path(selected_path)
     raw: dict[str, Any] = {}
     if config_path.exists():

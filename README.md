@@ -1,14 +1,30 @@
-# Mini Secure Agent
+# ztagent-core
 
-A lean, extensible security gateway for small and medium AI agent projects.
+Open-source AI agent security gateway from **[ztagent.ai](https://ztagent.ai)**.
 
 Author: **[Victor Fang](https://VictorFang.com)** ·
 [X](https://X.com/vicfcs) ·
 [LinkedIn](https://www.linkedin.com/in/drvictorfang)
 
-Mini Secure Agent (MSA) puts one enforcement pipeline in front of model and tool
-calls. It provides useful secure defaults without replacing your identity
-provider, reverse proxy, model host, or SIEM.
+`ztagent-core` puts one enforcement pipeline in front of model and tool calls.
+It provides useful secure defaults without replacing your identity provider,
+reverse proxy, model host, or SIEM.
+
+## Editions and services
+
+| Offering | What it is |
+|---|---|
+| **ztagent-core** (this repository) | Apache-2.0 foundation you can self-host, audit, and extend |
+| **ztagent Enterprise** | Commercial edition for production organizations (coming) |
+| **Consulting** | Custom policy, tools, threat modeling, and deployment help |
+
+Use Core when you want a compact, inspectable security boundary. Enterprise is
+planned for teams that need vendor-supported controls beyond the open-source
+core. Until that ships, [ztagent.ai](https://ztagent.ai) offers consulting to
+customize the gateway for your identity, policy, and tool landscape.
+
+Contact: [ztagent.ai](https://ztagent.ai) · [VictorFang.com](https://VictorFang.com) ·
+[LinkedIn](https://www.linkedin.com/in/drvictorfang)
 
 > This is a security foundation, not a claim that signature matching makes an AI
 > system completely safe. Prompt injection is not a solved problem. Layer the
@@ -40,14 +56,14 @@ source .venv/bin/activate
 pip install -e .
 
 # Create a separate starter project, or use this repository's included example.
-msa init my-agent
+ztagent init my-agent
 cd my-agent
 cp .env.example .env
-msa secret                         # put output in MSA_AUDIT_HMAC_KEY
+ztagent secret                         # put output in ZTAGENT_AUDIT_HMAC_KEY
 set -a; source .env; set +a
 docker compose up -d
-msa check
-msa serve
+ztagent check
+ztagent serve
 ```
 
 Open <http://127.0.0.1:8000/admin>. Development defaults disable authentication;
@@ -80,7 +96,7 @@ written to audit events.
 ## Identity and policy
 
 Configure the issuer, audience, JWKS URL, fixed asymmetric algorithms, and role
-claim under `auth`. MSA verifies signature, expiration, issued-at, issuer,
+claim under `auth`. ztagent-core verifies signature, expiration, issued-at, issuer,
 audience, and subject. Do not derive accepted JWT algorithms from a token.
 
 The gateway is the policy enforcement point (PEP). It sends only identity,
@@ -89,7 +105,7 @@ Prompts and tool arguments are not sent to OPA. The starter Rego policy allows:
 
 - authenticated model calls;
 - low/medium-risk tools for authenticated identities;
-- high-risk tools only for the `msa-tool-admin` role.
+- high-risk tools only for the `ztagent-tool-admin` role.
 
 Tailor `policies/authz.rego` to tenant, model, tool, data classification, and
 business approval requirements. OPA is bound to loopback in `compose.yaml`.
@@ -98,7 +114,7 @@ business approval requirements. OPA is bound to loopback in `compose.yaml`.
 
 ```python
 from pydantic import BaseModel
-from mini_secure_agent.tools import ToolRegistry, ToolSpec
+from ztagent_core.tools import ToolRegistry, ToolSpec
 
 
 class LookupArgs(BaseModel):
@@ -129,7 +145,7 @@ pip install -e '.[langchain]'
 ```
 
 ```python
-from mini_secure_agent.integrations import as_langchain_runnable
+from ztagent_core.integrations import as_langchain_runnable
 
 secure_node = as_langchain_runnable(gateway, principal)
 result = await secure_node.ainvoke({"messages": [{"role": "user", "content": "Hello"}]})
@@ -144,9 +160,9 @@ Install the demo extra and run three small LangChain applications:
 
 ```bash
 pip install -e '.[demos]'
-msa demo stock-injection
-msa demo unauthorized-publish
-msa demo article-only
+ztagent demo stock-injection
+ztagent demo unauthorized-publish
+ztagent demo article-only
 ```
 
 Each command contrasts a deliberately vulnerable baseline with the protected
@@ -162,11 +178,11 @@ demonstrated, and important limitations.
 ## CLI
 
 ```text
-msa init [DIRECTORY]   Generate config, signatures, Rego, Compose, and app files
-msa secret             Generate a strong audit HMAC key
-msa check              Validate configuration and signatures; flag dev bypasses
-msa demo               Compare vulnerable and secured LangChain demo agents
-msa serve              Start the gateway and portal
+ztagent init [DIRECTORY]   Generate config, signatures, Rego, Compose, and app files
+ztagent secret             Generate a strong audit HMAC key
+ztagent check              Validate configuration and signatures; flag dev bypasses
+ztagent demo               Compare vulnerable and secured LangChain demo agents
+ztagent serve              Start the gateway and portal
 ```
 
 ## Architecture and security scope
@@ -187,4 +203,4 @@ mypy
 pytest
 ```
 
-Apache-2.0 licensed.
+Apache-2.0 licensed (`ztagent-core`). Product site: [ztagent.ai](https://ztagent.ai).

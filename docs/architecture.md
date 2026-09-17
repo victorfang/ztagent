@@ -1,19 +1,25 @@
 # Architecture and security plan
 
 > **Author:** [Victor Fang](https://VictorFang.com) ·
+> [ztagent.ai](https://ztagent.ai) ·
 > [X](https://X.com/vicfcs) ·
 > [LinkedIn](https://www.linkedin.com/in/drvictorfang)
 
 ## Goal and non-goals
 
-Mini Secure Agent is a compact reference implementation for teams that need a
-consistent security boundary around multiple model providers and orchestrators.
-It keeps policy, detection, audit, and response replaceable behind small Python
+ztagent-core is the Apache-2.0 security gateway from [ztagent.ai](https://ztagent.ai).
+It is a compact, self-hosted implementation for teams that need a consistent
+security boundary around multiple model providers and orchestrators. It keeps
+policy, detection, audit, and response replaceable behind small Python
 interfaces.
 
 It is not an LLM sandbox, malware scanner, DLP product, identity provider, WAF,
 SIEM, or assurance certification. It does not claim to reliably identify every
 prompt injection. Those concerns should integrate at deployment boundaries.
+
+A commercial **ztagent Enterprise** edition is planned for organizations that
+need vendor-supported controls beyond this core. Custom policy, tool, and
+deployment work is available as consulting through [ztagent.ai](https://ztagent.ai).
 
 ## Request flow
 
@@ -137,8 +143,9 @@ should:
 ## Constructive scope choices
 
 The first release deliberately avoids building a full agent loop. Agent loops
-are orchestrator-specific and frequently create bypass paths. MSA instead owns a
-small gateway contract that LangChain and custom harnesses can call.
+are orchestrator-specific and frequently create bypass paths. ztagent-core
+instead owns a small gateway contract that LangChain and custom harnesses can
+call.
 
 It also avoids embedding Keycloak, OPA, Redis, a reverse proxy, and a JavaScript
 build chain in one package. OPA has a minimal Compose service; identity and edge

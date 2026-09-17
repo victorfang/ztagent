@@ -3,9 +3,9 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mini-secure-agent"
+name = "ztagent-core"
 version = "0.1.0"
-description = "A lean security gateway for small and medium AI agent projects"
+description = "Open-source AI agent security gateway from ztagent.ai"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}
@@ -23,7 +23,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://VictorFang.com"
+Homepage = "https://ztagent.ai"
+Repository = "https://github.com/victorfang/ztagent"
+Author = "https://VictorFang.com"
 X = "https://X.com/vicfcs"
 LinkedIn = "https://www.linkedin.com/in/drvictorfang"
 
@@ -43,10 +45,10 @@ dev = [
 ]
 
 [project.scripts]
-msa = "mini_secure_agent.cli:app"
+ztagent = "ztagent_core.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mini_secure_agent"]
+packages = ["src/ztagent_core"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
@@ -62,15 +64,15 @@ select = ["E", "F", "I", "B", "UP", "S"]
 ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/mini_secure_agent/api.py" = ["B008"]
-"src/mini_secure_agent/cli.py" = ["B008"]
-"src/mini_secure_agent/config.py" = ["S104", "S105"]
+"src/ztagent_core/api.py" = ["B008"]
+"src/ztagent_core/cli.py" = ["B008"]
+"src/ztagent_core/config.py" = ["S104", "S105"]
 "tests/*" = ["S105"]
 
 [tool.mypy]
 python_version = "3.11"
 strict = true
-packages = ["mini_secure_agent"]
+packages = ["ztagent_core"]
 
 [[tool.mypy.overrides]]
 module = ["langchain_core", "langchain_core.*"]

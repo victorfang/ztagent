@@ -54,7 +54,7 @@ class JWTAuthenticator:
 
     async def __call__(self, request: Request) -> Principal:
         if not self.config.enabled:
-            return Principal(subject="development-user", roles=frozenset({"msa-admin"}))
+            return Principal(subject="development-user", roles=frozenset({"ztagent-admin"}))
         header = request.headers.get("Authorization", "")
         scheme, _, token = header.partition(" ")
         if scheme.lower() != "bearer" or not token:

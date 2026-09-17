@@ -5,7 +5,7 @@
 
 import pytest
 
-from mini_secure_agent.config import ProviderConfig
+from ztagent_core.config import ProviderConfig
 
 
 def test_anthropic_uses_provider_specific_key(

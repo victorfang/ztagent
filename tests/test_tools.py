@@ -6,7 +6,7 @@
 import pytest
 from pydantic import BaseModel, Field, ValidationError
 
-from mini_secure_agent.tools import ToolRegistry, ToolSpec
+from ztagent_core.tools import ToolRegistry, ToolSpec
 
 
 class AddArguments(BaseModel):

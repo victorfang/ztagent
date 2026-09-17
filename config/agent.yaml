@@ -8,12 +8,12 @@ server:
   host: 127.0.0.1
   port: 8000
   environment: development
-  admin_roles: [msa-admin]
+  admin_roles: [ztagent-admin]
 
 auth:
   enabled: false
   issuer: https://keycloak.example/realms/agents
-  audience: mini-secure-agent
+  audience: ztagent-core
   jwks_url: https://keycloak.example/realms/agents/protocol/openid-connect/certs
   algorithms: [RS256]
   role_claim: realm_access.roles
@@ -25,7 +25,7 @@ provider:
 
 policy:
   opa_url: http://127.0.0.1:8181
-  decision_path: mini_secure_agent/authz/allow
+  decision_path: ztagent_core/authz/allow
   fail_open: false
   development_allow_without_opa: true
 
@@ -37,7 +37,7 @@ guardrails:
 
 audit:
   path: data/audit.jsonl
-  hmac_key_env: MSA_AUDIT_HMAC_KEY
+  hmac_key_env: ZTAGENT_AUDIT_HMAC_KEY
   log_prompt_content: false
 
 anomaly:

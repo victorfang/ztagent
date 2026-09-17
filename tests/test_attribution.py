@@ -18,7 +18,7 @@ def test_code_and_configuration_carry_author_attribution() -> None:
         *Path("src").rglob("*.py"),
         *Path("tests").rglob("*.py"),
         *Path("config").rglob("*.yaml"),
-        Path("src/mini_secure_agent/py.typed"),
+        Path("src/ztagent_core/py.typed"),
         Path("app.py"),
         Path("compose.yaml"),
         Path("policies/authz.rego"),
@@ -35,8 +35,10 @@ def test_code_and_configuration_carry_author_attribution() -> None:
 def test_documents_carry_author_attribution() -> None:
     files = [Path("README.md"), Path("SECURITY.md"), Path("AUTHORS.md"), Path("NOTICE")]
     files.extend(Path("docs").rglob("*.md"))
+    brand = "https://ztagent.ai"
 
     for path in files:
         content = path.read_text(encoding="utf-8")
         for expected in ATTRIBUTION:
             assert expected in content, f"{path} is missing {expected}"
+        assert brand in content, f"{path} is missing {brand}"

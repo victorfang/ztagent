@@ -1,6 +1,7 @@
 # Security policy
 
 > **Author:** [Victor Fang](https://VictorFang.com) ·
+> [ztagent.ai](https://ztagent.ai) ·
 > [X](https://X.com/vicfcs) ·
 > [LinkedIn](https://www.linkedin.com/in/drvictorfang)
 

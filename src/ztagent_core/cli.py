@@ -27,8 +27,8 @@ from .templates import (
 )
 
 app = typer.Typer(
-    name="msa",
-    help="Set up and operate a lean secure AI agent gateway.",
+    name="ztagent",
+    help="Set up and operate ztagent-core, the open-source security gateway from ztagent.ai.",
     no_args_is_help=True,
 )
 
@@ -38,7 +38,7 @@ def init(
     directory: Path = typer.Argument(Path("."), help="Project directory"),
     force: bool = typer.Option(False, "--force", help="Replace generated files"),
 ) -> None:
-    """Create a ready-to-customize secure agent project."""
+    """Create a ready-to-customize ztagent-core project."""
     files = {
         "config/agent.yaml": CONFIG_TEMPLATE,
         "config/signatures.yaml": SIGNATURES_TEMPLATE,
@@ -59,11 +59,11 @@ def init(
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(content, encoding="utf-8")
         typer.echo(f"  created {destination}")
-    typer.secho("\nMini Secure Agent is ready.", fg=typer.colors.GREEN, bold=True)
+    typer.secho("\nztagent-core is ready.", fg=typer.colors.GREEN, bold=True)
     typer.echo("1. Copy .env.example to .env and set provider credentials.")
-    typer.echo("2. Replace its audit key with the output of: msa secret")
+    typer.echo("2. Replace its audit key with the output of: ztagent secret")
     typer.echo("3. Start OPA: docker compose up -d")
-    typer.echo("4. Run: msa serve")
+    typer.echo("4. Run: ztagent serve")
     typer.echo("5. Open: http://127.0.0.1:8000/admin")
 
 
@@ -165,9 +165,9 @@ def serve(
 
     resolved_config = config.resolve()
     loaded = load_config(resolved_config)
-    os.environ["MSA_CONFIG"] = str(resolved_config)
+    os.environ["ZTAGENT_CONFIG"] = str(resolved_config)
     uvicorn.run(
-        "mini_secure_agent.api:create_app",
+        "ztagent_core.api:create_app",
         factory=True,
         host=loaded.server.host,
         port=loaded.server.port,

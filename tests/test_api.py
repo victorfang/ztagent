@@ -8,9 +8,9 @@ from typing import Any, cast
 import pytest
 from fastapi.testclient import TestClient
 
-from mini_secure_agent.api import create_app
-from mini_secure_agent.config import AppConfig
-from mini_secure_agent.gateway import SecureAgentGateway
+from ztagent_core.api import create_app
+from ztagent_core.config import AppConfig
+from ztagent_core.gateway import SecureAgentGateway
 
 
 def test_public_api_rejects_privileged_message_roles() -> None:

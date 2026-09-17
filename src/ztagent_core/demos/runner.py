@@ -91,9 +91,7 @@ class LangChainOpenAIModel:
         try:
             from langchain_openai import ChatOpenAI
         except ImportError as exc:
-            raise RuntimeError(
-                "Live demos require: pip install 'mini-secure-agent[demos]'"
-            ) from exc
+            raise RuntimeError("Live demos require: pip install 'ztagent-core[demos]'") from exc
         self._model = ChatOpenAI(model=model, temperature=0, max_retries=1)
 
     async def ainvoke(self, prompt: str) -> str:
@@ -124,13 +122,13 @@ class DemoPolicy:
         resource = policy_input.get("resource", {})
         roles = policy_input.get("roles", [])
         if isinstance(resource, dict) and resource.get("risk") == "high":
-            allowed = "msa-tool-admin" in roles
+            allowed = "ztagent-tool-admin" in roles
             return Decision(
                 allowed=allowed,
                 reason=(
                     "Privileged demo role present"
                     if allowed
-                    else "High-risk delivery requires msa-tool-admin"
+                    else "High-risk delivery requires ztagent-tool-admin"
                 ),
             )
         return Decision(allowed=True, reason="Low-risk demo tool allowed")
@@ -241,7 +239,7 @@ class DemoRunner:
         try:
             from langchain_core.runnables import RunnableLambda
         except ImportError as exc:
-            raise RuntimeError("Demos require: pip install 'mini-secure-agent[demos]'") from exc
+            raise RuntimeError("Demos require: pip install 'ztagent-core[demos]'") from exc
         chain = RunnableLambda(model.ainvoke)
         result = await chain.ainvoke(prompt)
         return str(result)
@@ -255,7 +253,7 @@ def create_demo_runner(
     privileged: bool = False,
 ) -> DemoRunner:
     tools, outbox = create_demo_tools(data_dir / "outbox.jsonl")
-    roles = frozenset({"msa-tool-admin"}) if privileged else frozenset()
+    roles = frozenset({"ztagent-tool-admin"}) if privileged else frozenset()
     principal = Principal(subject="demo-user", roles=roles)
     if offline:
         provider: ModelProvider = OfflineProvider()

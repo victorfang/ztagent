@@ -10,7 +10,7 @@ import pytest
 import uvicorn
 from typer.testing import CliRunner
 
-from mini_secure_agent.cli import app
+from ztagent_core.cli import app
 
 
 def test_serve_propagates_selected_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -30,7 +30,7 @@ def test_serve_propagates_selected_config(tmp_path: Path, monkeypatch: pytest.Mo
     result = CliRunner().invoke(app, ["serve", "--config", str(config)])
 
     assert result.exit_code == 0
-    assert os.environ["MSA_CONFIG"] == str(config.resolve())
+    assert os.environ["ZTAGENT_CONFIG"] == str(config.resolve())
     assert called["port"] == 9123
 
 

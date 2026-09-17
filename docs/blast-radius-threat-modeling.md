@@ -1,6 +1,7 @@
 # AI Agent Blast-Radius and Threat-Modeling Tutorial
 
 > **Author:** [Victor Fang](https://VictorFang.com) ·
+> [ztagent.ai](https://ztagent.ai) ·
 > [X](https://X.com/vicfcs) ·
 > [LinkedIn](https://www.linkedin.com/in/drvictorfang)
 
@@ -10,14 +11,14 @@ the organization contains it. That reachable impact is the agent's **blast
 radius**.
 
 This tutorial provides a repeatable way to model blast radius before deploying
-an agent. It uses the stock, article, and communication demos included in Mini
-Secure Agent:
+an agent. It uses the stock, article, and communication demos included in
+ztagent-core:
 
 ```bash
 pip install -e '.[demos]'
-msa demo stock-injection
-msa demo unauthorized-publish
-msa demo article-only
+ztagent demo stock-injection
+ztagent demo unauthorized-publish
+ztagent demo article-only
 ```
 
 The default demos are deterministic and all delivery remains in a local sandbox.
@@ -166,7 +167,7 @@ read all drafts.
 | Persistence | 2 | Messages remain queued/delivered |
 | **Total** | **14/24** | High exfiltration radius |
 
-### After Mini Secure Agent
+### After ztagent-core
 
 ```text
 typed ticker → tool policy → stock lookup → tool-output signature scan
@@ -176,7 +177,7 @@ typed ticker → tool policy → stock lookup → tool-output signature scan
 The demo reproduces the contrast:
 
 ```bash
-msa demo stock-injection
+ztagent demo stock-injection
 ```
 
 Expected boundary effects:
@@ -235,7 +236,7 @@ The model can invoke a social handler directly. There is no difference between
 Run the unsafe-but-sandboxed reproduction:
 
 ```bash
-msa demo unauthorized-publish --mode before
+ztagent demo unauthorized-publish --mode before
 ```
 
 ### After controls
@@ -246,10 +247,10 @@ upstream role mapping; it is not authentication.
 
 ```bash
 # Denied: no publisher role.
-msa demo unauthorized-publish --mode after
+ztagent demo unauthorized-publish --mode after
 
 # Allowed policy path, still local sandbox only.
-msa demo unauthorized-publish --mode after --privileged
+ztagent demo unauthorized-publish --mode after --privileged
 ```
 
 Recommended production obligations go beyond a role:
@@ -267,7 +268,7 @@ Recommended production obligations go beyond a role:
 }
 ```
 
-Mini Secure Agent currently demonstrates role/risk policy, not a complete human
+ztagent-core currently demonstrates role/risk policy, not a complete human
 approval primitive. Add approval verification before connecting a real social
 API.
 
@@ -328,7 +329,7 @@ model proposes customer_id=customer_123
   → delivery service enforces resolved recipient and idempotency
 ```
 
-The Mini Secure Agent demo intentionally writes only to a local outbox. It does
+The ztagent-core demo intentionally writes only to a local outbox. It does
 not contain SMTP, social SDKs, webhooks, or arbitrary HTTP delivery.
 
 ## 7. Model detection and containment separately
@@ -355,7 +356,7 @@ Evidence required:
 Expected TTD / TTC:
 ```
 
-Mini Secure Agent applies a local identity block before optional external
+ztagent-core applies a local identity block before optional external
 containment. Its tool-output detector blocks propagation but deliberately does
 not automatically punish the user whose request encountered poisoned upstream
 data.

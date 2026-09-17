@@ -10,17 +10,17 @@ CONFIG_TEMPLATE = """# Author: Victor Fang
 # X: https://X.com/vicfcs
 # LinkedIn: https://www.linkedin.com/in/drvictorfang
 
-# Mini Secure Agent configuration — secrets belong in the environment.
+# ztagent-core configuration — secrets belong in the environment.
 server:
   host: 127.0.0.1
   port: 8000
   environment: development
-  admin_roles: [msa-admin]
+  admin_roles: [ztagent-admin]
 
 auth:
   enabled: false  # Development only. Enable OIDC before production.
   issuer: https://keycloak.example/realms/agents
-  audience: mini-secure-agent
+  audience: ztagent-core
   jwks_url: https://keycloak.example/realms/agents/protocol/openid-connect/certs
   algorithms: [RS256]
   role_claim: realm_access.roles
@@ -36,7 +36,7 @@ provider:
 
 policy:
   opa_url: http://127.0.0.1:8181
-  decision_path: mini_secure_agent/authz/allow
+  decision_path: ztagent_core/authz/allow
   fail_open: false
   development_allow_without_opa: true  # Must be false in production.
 
@@ -48,7 +48,7 @@ guardrails:
 
 audit:
   path: data/audit.jsonl
-  hmac_key_env: MSA_AUDIT_HMAC_KEY
+  hmac_key_env: ZTAGENT_AUDIT_HMAC_KEY
   log_prompt_content: false
 
 anomaly:
@@ -110,7 +110,7 @@ REGO_TEMPLATE = """# Author: Victor Fang
 # X: https://X.com/vicfcs
 # LinkedIn: https://www.linkedin.com/in/drvictorfang
 
-package mini_secure_agent.authz
+package ztagent_core.authz
 
 import rego.v1
 
@@ -133,7 +133,7 @@ allow if {
 allow if {
     input.action == "tool.execute"
     input.resource.risk == "high"
-    "msa-tool-admin" in input.roles
+    "ztagent-tool-admin" in input.roles
 }
 """
 
@@ -142,9 +142,9 @@ APP_TEMPLATE = '''# Author: Victor Fang
 # X: https://X.com/vicfcs
 # LinkedIn: https://www.linkedin.com/in/drvictorfang
 
-"""Starter Mini Secure Agent application."""
+"""Starter ztagent-core application."""
 
-from mini_secure_agent.api import create_app
+from ztagent_core.api import create_app
 
 app = create_app()
 '''
@@ -154,8 +154,8 @@ ENV_TEMPLATE = """# Author: Victor Fang
 # X: https://X.com/vicfcs
 # LinkedIn: https://www.linkedin.com/in/drvictorfang
 
-# Generate with: msa secret
-MSA_AUDIT_HMAC_KEY=replace-with-at-least-32-random-characters
+# Generate with: ztagent secret
+ZTAGENT_AUDIT_HMAC_KEY=replace-with-at-least-32-random-characters
 OPENAI_API_KEY=
 # ANTHROPIC_API_KEY=
 # KEYCLOAK_ADMIN_TOKEN=

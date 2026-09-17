@@ -5,8 +5,8 @@
 
 from pathlib import Path
 
-from mini_secure_agent.anomaly import AnomalyDetector
-from mini_secure_agent.config import AnomalyConfig
+from ztagent_core.anomaly import AnomalyDetector
+from ztagent_core.config import AnomalyConfig
 
 
 def test_rolling_request_limit_blocks_after_threshold(tmp_path: Path) -> None:

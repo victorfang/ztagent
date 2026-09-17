@@ -3,7 +3,7 @@
 # X: https://X.com/vicfcs
 # LinkedIn: https://www.linkedin.com/in/drvictorfang
 
-package mini_secure_agent.authz
+package ztagent_core.authz
 
 import rego.v1
 
@@ -23,5 +23,5 @@ allow if {
 allow if {
     input.action == "tool.execute"
     input.resource.risk == "high"
-    "msa-tool-admin" in input.roles
+    "ztagent-tool-admin" in input.roles
 }

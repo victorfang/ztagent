@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import Any, Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -74,7 +74,7 @@ class BodyLimitMiddleware:
             size += len(chunk)
             if size > self.max_bytes:
                 response = JSONResponse(
-                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    status_code=413,
                     content={"detail": "Request body too large"},
                 )
                 await response(scope, receive, send)
@@ -120,7 +120,8 @@ def create_app(
     secured = gateway or create_gateway(cfg)
     authenticator = JWTAuthenticator(cfg.auth)
     app = FastAPI(
-        title="Mini Secure Agent",
+        title="ztagent-core",
+        summary="Open-source AI agent security gateway from ztagent.ai",
         version="0.1.0",
         docs_url="/docs" if cfg.server.environment != "production" else None,
         redoc_url=None,

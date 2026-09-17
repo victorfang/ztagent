@@ -25,7 +25,7 @@ def as_langchain_runnable(
         from langchain_core.runnables import RunnableLambda
     except ImportError as exc:
         raise RuntimeError(
-            "LangChain integration requires: pip install 'mini-secure-agent[langchain]'"
+            "LangChain integration requires: pip install 'ztagent-core[langchain]'"
         ) from exc
 
     async def secure_call(value: AgentRequest | dict[str, Any]) -> dict[str, Any]:

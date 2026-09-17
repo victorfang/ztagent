@@ -6,8 +6,8 @@
 import json
 from pathlib import Path
 
-from mini_secure_agent.audit import AuditLog
-from mini_secure_agent.models import SecurityEvent
+from ztagent_core.audit import AuditLog
+from ztagent_core.models import SecurityEvent
 
 
 def test_audit_chain_verifies_and_redacts(tmp_path: Path) -> None:

@@ -8,14 +8,14 @@ from pathlib import Path
 import pytest
 from pydantic import BaseModel
 
-from mini_secure_agent.anomaly import AnomalyDetector
-from mini_secure_agent.audit import AuditLog
-from mini_secure_agent.config import AppConfig
-from mini_secure_agent.containment import ContainmentService
-from mini_secure_agent.gateway import SecureAgentGateway, SecurityDenied
-from mini_secure_agent.guardrails import SignatureScanner
-from mini_secure_agent.models import AgentRequest, Decision, Message, Principal
-from mini_secure_agent.tools import ToolRegistry, ToolSpec
+from ztagent_core.anomaly import AnomalyDetector
+from ztagent_core.audit import AuditLog
+from ztagent_core.config import AppConfig
+from ztagent_core.containment import ContainmentService
+from ztagent_core.gateway import SecureAgentGateway, SecurityDenied
+from ztagent_core.guardrails import SignatureScanner
+from ztagent_core.models import AgentRequest, Decision, Message, Principal
+from ztagent_core.tools import ToolRegistry, ToolSpec
 
 
 class FakeProvider:

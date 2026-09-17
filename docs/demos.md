@@ -1,6 +1,7 @@
 # Security demonstration agents
 
 > **Author:** [Victor Fang](https://VictorFang.com) ·
+> [ztagent.ai](https://ztagent.ai) ·
 > [X](https://X.com/vicfcs) ·
 > [LinkedIn](https://www.linkedin.com/in/drvictorfang)
 
@@ -14,12 +15,12 @@ local JSONL sandbox under `data/demos/`.
 pip install -e '.[demos]'
 
 # Fully deterministic; no API key or network calls.
-msa demo stock-injection
-msa demo unauthorized-publish
-msa demo article-only
+ztagent demo stock-injection
+ztagent demo unauthorized-publish
+ztagent demo article-only
 
 # Show a legitimate privileged publishing workflow.
-msa demo unauthorized-publish --mode after --privileged
+ztagent demo unauthorized-publish --mode after --privileged
 ```
 
 The default `both` mode first runs an intentionally vulnerable baseline and then
@@ -27,8 +28,8 @@ the equivalent framework-protected application. Use separate commands if you
 want only one side:
 
 ```bash
-msa demo stock-injection --mode before
-msa demo stock-injection --mode after
+ztagent demo stock-injection --mode before
+ztagent demo stock-injection --mode after
 ```
 
 To use LangChain's live OpenAI integration for the vulnerable baseline and the
@@ -36,10 +37,10 @@ framework's OpenAI adapter for the protected application:
 
 ```bash
 export OPENAI_API_KEY=...
-export MSA_AUDIT_HMAC_KEY="$(msa secret)"
-export MSA_POLICY__DEVELOPMENT_ALLOW_WITHOUT_OPA=false
+export ZTAGENT_AUDIT_HMAC_KEY="$(ztagent secret)"
+export ZTAGENT_POLICY__DEVELOPMENT_ALLOW_WITHOUT_OPA=false
 docker compose up -d
-msa demo article-only --live
+ztagent demo article-only --live
 ```
 
 Live mode uses the provider model and OPA settings in `config/agent.yaml`. It
@@ -52,7 +53,7 @@ tools remain local sandbox fixtures.
 | Scenario | Agent application | Vulnerable “before” behavior | Protected “after” behavior |
 |---|---|---|---|
 | `stock-injection` | Check and summarize an ACME stock quote | Untrusted market-data text tells the model to email a confidential draft; direct tool execution writes it to the attacker-addressed sandbox record | The tool-output scanner detects indirect prompt injection and blocks before the data reaches the model |
-| `unauthorized-publish` | Write an article and publish it to social media | The model's requested delivery executes with no identity or authorization decision | High-risk tool policy denies execution without `msa-tool-admin`; when authorized, arguments are also schema validated |
+| `unauthorized-publish` | Write an article and publish it to social media | The model's requested delivery executes with no identity or authorization decision | High-risk tool policy denies execution without `ztagent-tool-admin`; when authorized, arguments are also schema validated |
 | `article-only` | Draft an article without publishing | Demonstrates ordinary generation | The request passes signatures, anomaly checks, model policy, and audit, while no delivery capability is invoked |
 
 `--privileged` simulates an application mapping a previously authenticated user

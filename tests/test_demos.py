@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from mini_secure_agent.config import AppConfig
-from mini_secure_agent.demos.runner import create_demo_runner
+from ztagent_core.config import AppConfig
+from ztagent_core.demos.runner import create_demo_runner
 
 
 @pytest.mark.asyncio
@@ -39,7 +39,7 @@ async def test_policy_blocks_unauthorized_social_publish(tmp_path: Path) -> None
     assert len(before.outbox) == 1
     assert after.status == "blocked"
     assert after.outbox == []
-    assert "requires msa-tool-admin" in after.explanation
+    assert "requires ztagent-tool-admin" in after.explanation
 
 
 @pytest.mark.asyncio
