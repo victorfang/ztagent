@@ -76,10 +76,12 @@ class RulePackSourceConfig(BaseModel):
 
 class GuardrailConfig(BaseModel):
     signatures_file: Path = Path("config/signatures.yaml")
-    packs: list[RulePackSourceConfig] = []
+    packs: list[RulePackSourceConfig] = Field(default_factory=list, max_length=50)
     trust_store: Path | None = None
     require_signed_packs: bool = False
     regex_timeout_ms: int = Field(default=50, ge=1, le=1000)
+    evaluation_budget_ms: int = Field(default=200, ge=1, le=5_000)
+    max_active_rules: int = Field(default=2_000, ge=1, le=10_000)
     max_prompt_chars: int = Field(default=100_000, ge=100)
     block_score: int = Field(default=80, ge=1)
 

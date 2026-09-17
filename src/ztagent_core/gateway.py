@@ -124,15 +124,15 @@ class SecureAgentGateway:
             resource={"provider": self.provider.name, "model": model},
         )
         if self._must_block(output_findings):
-            self._audit(
-                "model_output_detection",
-                "blocked",
+            await self._deny(
                 principal,
                 request_id,
                 source_ip,
-                {"detections": [item.model_dump() for item in output_findings]},
+                output_findings,
+                event_type="model_output_detection",
+                reason="Model output blocked by security controls",
+                context_details={"provider": self.provider.name, "model": model},
             )
-            raise SecurityDenied("Model output blocked by security controls", request_id)
         self._audit(
             "model_call",
             "allowed",
@@ -218,18 +218,15 @@ class SecureAgentGateway:
             resource={"tool": name, "risk": spec.risk},
         )
         if self._must_block(output_findings):
-            self._audit(
-                "tool_output_detection",
-                "blocked",
+            await self._deny(
                 principal,
                 request_id,
                 source_ip,
-                {
-                    "tool": name,
-                    "detections": [item.model_dump() for item in output_findings],
-                },
+                output_findings,
+                event_type="tool_output_detection",
+                reason="Untrusted tool output blocked by security controls",
+                context_details={"tool": name, "risk": spec.risk},
             )
-            raise SecurityDenied("Untrusted tool output blocked by security controls", request_id)
         self._audit(
             "tool_call",
             "allowed",
@@ -262,16 +259,21 @@ class SecureAgentGateway:
         request_id: str,
         source_ip: str | None,
         findings: list[Detection],
+        *,
+        event_type: str = "security_detection",
+        reason: str = "Request blocked by security controls",
+        context_details: dict[str, Any] | None = None,
     ) -> None:
         repeated = self.anomaly.observe_block(principal.subject)
         all_findings = findings + repeated
         should_contain = any(item.action == "contain" for item in all_findings)
         details: dict[str, Any] = {
+            **(context_details or {}),
             "detections": [item.model_dump() for item in all_findings],
             "contained": should_contain,
         }
         event = SecurityEvent(
-            event_type="security_detection",
+            event_type=event_type,
             outcome="blocked",
             subject=principal.subject,
             request_id=request_id,
@@ -285,7 +287,7 @@ class SecureAgentGateway:
                 event.event_id,
             )
         self.audit.append(event)
-        raise SecurityDenied("Request blocked by security controls", request_id)
+        raise SecurityDenied(reason, request_id)
 
     async def _deny_reason(
         self,

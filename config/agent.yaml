@@ -35,6 +35,8 @@ guardrails:
   # trust_store: config/trusted-publishers.yaml
   require_signed_packs: false
   regex_timeout_ms: 50
+  evaluation_budget_ms: 200
+  max_active_rules: 2000
   max_prompt_chars: 100000
   block_score: 80
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import unicodedata
 from dataclasses import dataclass
+from time import monotonic
 
 import regex
 
@@ -29,9 +30,15 @@ class _CompiledRule:
 class GuardrailSet:
     """A request-safe immutable snapshot of compiled rules and provenance."""
 
-    def __init__(self, rules: tuple[_CompiledRule, ...], packs: tuple[LoadedPack, ...]) -> None:
+    def __init__(
+        self,
+        rules: tuple[_CompiledRule, ...],
+        packs: tuple[LoadedPack, ...],
+        evaluation_budget_ms: int,
+    ) -> None:
         self._rules = rules
         self.packs = packs
+        self._evaluation_budget_seconds = evaluation_budget_ms / 1_000
 
     @classmethod
     def compile(
@@ -39,6 +46,8 @@ class GuardrailSet:
         packs: list[LoadedPack],
         *,
         default_timeout_ms: int = 50,
+        evaluation_budget_ms: int = 200,
+        max_active_rules: int = 2_000,
     ) -> GuardrailSet:
         seen: dict[str, str] = {}
         compiled: list[_CompiledRule] = []
@@ -70,7 +79,11 @@ class GuardrailSet:
                         default_timeout_seconds=default_timeout_ms / 1_000,
                     )
                 )
-        return cls(tuple(compiled), tuple(packs))
+                if len(compiled) > max_active_rules:
+                    raise ValueError(
+                        f"Active guardrail count exceeds configured limit of {max_active_rules}"
+                    )
+        return cls(tuple(compiled), tuple(packs), evaluation_budget_ms)
 
     @property
     def rule_count(self) -> int:
@@ -79,15 +92,21 @@ class GuardrailSet:
     def inspect(self, context: GuardrailContext) -> list[Detection]:
         normalized = unicodedata.normalize("NFKC", context.content)
         findings: list[Detection] = []
+        deadline = monotonic() + self._evaluation_budget_seconds
         for compiled in self._rules:
             rule = compiled.definition
             if context.stage not in rule.stages:
                 continue
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                findings.append(self._budget_finding(context))
+                break
             timeout = (
                 rule.timeout_ms / 1_000
                 if rule.timeout_ms is not None
                 else compiled.default_timeout_seconds
             )
+            timeout = min(timeout, remaining)
             try:
                 matched = compiled.expression.search(normalized, timeout=timeout)
             except TimeoutError:
@@ -102,6 +121,8 @@ class GuardrailSet:
                         detail="Rule evaluation timed out; fail-closed",
                     )
                 )
+                if monotonic() >= deadline:
+                    break
                 continue
             if matched:
                 findings.append(
@@ -145,4 +166,17 @@ class GuardrailSet:
                 "pack_version": compiled.pack_version,
                 "pack_digest": compiled.pack_digest,
             }
+        )
+
+    @staticmethod
+    def _budget_finding(context: GuardrailContext) -> Detection:
+        return Detection(
+            rule_id="ztagent.guardrail-evaluation-budget",
+            category="guardrail-error",
+            severity="high",
+            action="block",
+            score=100,
+            detail="Aggregate guardrail evaluation budget exhausted; fail-closed",
+            stage=context.stage,
+            pack="ztagent-core",
         )

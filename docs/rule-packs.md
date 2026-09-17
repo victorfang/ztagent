@@ -22,7 +22,8 @@ The gateway takes one immutable rule snapshot and applies it at four trust bound
 
 Every finding includes the stage and pack name, version, and digest. Duplicate rule IDs,
 invalid expressions, incompatible versions, and required packs that fail validation stop
-gateway startup. Regex evaluation has a bounded timeout and fails closed.
+gateway startup. Per-rule timeouts, a request-wide evaluation budget, and an active-rule
+limit bound worst-case work and fail closed.
 
 The existing `config/signatures.yaml` remains supported as the local legacy pack. Its
 default stages are model input, tool input, and tool output. New packs should use explicit
@@ -103,6 +104,8 @@ guardrails:
       required: true
       require_signature: false
   require_signed_packs: false
+  evaluation_budget_ms: 200
+  max_active_rules: 2000
 ```
 
 An optional pack may use `required: false`; a missing optional path is skipped. A present

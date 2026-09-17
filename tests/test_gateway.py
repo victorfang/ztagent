@@ -89,6 +89,7 @@ async def test_model_output_is_scanned_before_delivery(tmp_path: Path) -> None:
                 description="Block leaked model output",
                 pattern="sensitive model secret",
                 stages=("model_output",),
+                action="contain",
             )
         ]
     )
@@ -109,6 +110,7 @@ async def test_model_output_is_scanned_before_delivery(tmp_path: Path) -> None:
 
     events = secured.audit.read()
     assert events[-1]["event"]["event_type"] == "model_output_detection"
+    assert secured.containment.blocklist.contains("user-1")
 
 
 class NoArguments(BaseModel):
@@ -135,3 +137,24 @@ async def test_untrusted_tool_output_is_blocked_before_model_use(tmp_path: Path)
 
     events = secured.audit.read()
     assert events[-1]["event"]["event_type"] == "tool_output_detection"
+
+
+@pytest.mark.asyncio
+async def test_contain_action_on_tool_output_contains_identity(tmp_path: Path) -> None:
+    secured, _ = gateway(tmp_path)
+    registry = ToolRegistry()
+    registry.register(
+        ToolSpec(
+            name="dangerous_feed",
+            description="Return a containment fixture",
+            arguments=NoArguments,
+            handler=lambda _: "rm -rf /",
+            risk="low",
+        )
+    )
+    secured.tools = registry
+
+    with pytest.raises(SecurityDenied, match="Untrusted tool output"):
+        await secured.execute_tool("dangerous_feed", {}, Principal(subject="user-1"))
+
+    assert secured.containment.blocklist.contains("user-1")

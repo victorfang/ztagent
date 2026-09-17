@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import shutil
 import stat
 import tempfile
@@ -193,10 +194,20 @@ class RulePackLoader:
             raise PackError(f"Invalid Rule Pack trust store: {exc}") from exc
 
 
-def compose_packs(packs: list[LoadedPack], default_timeout_ms: int = 50) -> Any:
+def compose_packs(
+    packs: list[LoadedPack],
+    default_timeout_ms: int = 50,
+    evaluation_budget_ms: int = 200,
+    max_active_rules: int = 2_000,
+) -> Any:
     from .engine import GuardrailSet
 
-    return GuardrailSet.compile(packs, default_timeout_ms=default_timeout_ms)
+    return GuardrailSet.compile(
+        packs,
+        default_timeout_ms=default_timeout_ms,
+        evaluation_budget_ms=evaluation_budget_ms,
+        max_active_rules=max_active_rules,
+    )
 
 
 def compute_pack_digest(root: Path, manifest: PackManifest | None = None) -> str:
@@ -223,19 +234,30 @@ def build_pack_archive(source: Path, output: Path) -> str:
     """Validate an unsigned source directory and create a deterministic .ztpack ZIP."""
     loaded = RulePackLoader().load(source)
     output.parent.mkdir(parents=True, exist_ok=True)
-    temporary = output.with_suffix(output.suffix + ".tmp")
-    with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        with materialize_pack(source) as root:
-            names = ["pack.yaml", *(item.path for item in loaded.manifest.contents)]
-            for name in sorted(names):
-                info = zipfile.ZipInfo(name)
-                info.date_time = (1980, 1, 1, 0, 0, 0)
-                info.external_attr = 0o100644 << 16
-                info.compress_type = zipfile.ZIP_DEFLATED
-                archive.writestr(info, root.joinpath(*PurePosixPath(name).parts).read_bytes())
-    verified = RulePackLoader().load(temporary)
-    temporary.replace(output)
-    return verified.digest
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{output.name}.",
+        suffix=".tmp",
+        dir=output.parent,
+    )
+    os.close(descriptor)
+    temporary = Path(temporary_name)
+    try:
+        with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            with materialize_pack(source) as root:
+                names = ["pack.yaml", *(item.path for item in loaded.manifest.contents)]
+                for name in sorted(names):
+                    info = zipfile.ZipInfo(name)
+                    info.date_time = (1980, 1, 1, 0, 0, 0)
+                    info.external_attr = 0o100644 << 16
+                    info.compress_type = zipfile.ZIP_DEFLATED
+                    archive.writestr(
+                        info, root.joinpath(*PurePosixPath(name).parts).read_bytes()
+                    )
+        verified = RulePackLoader().load(temporary)
+        temporary.replace(output)
+        return verified.digest
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def install_pack(
@@ -301,7 +323,15 @@ def install_pack(
 @contextmanager
 def materialize_pack(source: Path) -> Iterator[Path]:
     if source.is_dir():
-        yield source
+        if source.is_symlink():
+            raise PackError("Rule Pack source directory cannot be a symlink")
+        temporary = tempfile.TemporaryDirectory(prefix="ztagent-pack-")
+        root = Path(temporary.name)
+        try:
+            _snapshot_directory(source, root)
+            yield root
+        finally:
+            temporary.cleanup()
         return
     if not source.is_file():
         raise PackError(f"Rule Pack source does not exist: {source}")
@@ -355,6 +385,39 @@ def _safe_relative_path(value: str) -> PurePosixPath:
     if path.suffix.lower() not in ALLOWED_SUFFIXES:
         raise PackError(f"Unsupported Rule Pack file type: {value!r}")
     return path
+
+
+def _snapshot_directory(source: Path, destination: Path) -> None:
+    """Copy an untrusted directory into private storage before validation."""
+    entries = list(source.rglob("*"))
+    if len(entries) > MAX_FILES:
+        raise PackError("Rule Pack directory contains too many files")
+    total = 0
+    for path in entries:
+        relative = path.relative_to(source)
+        if path.is_symlink():
+            raise PackError(f"Rule Pack directory contains a symlink: {relative}")
+        target = destination / relative
+        if path.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+            continue
+        if not path.is_file():
+            raise PackError(f"Rule Pack directory contains a special file: {relative}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        except OSError as exc:
+            raise PackError(f"Cannot safely read Rule Pack file: {relative}") from exc
+        try:
+            with os.fdopen(descriptor, "rb") as input_stream, target.open("xb") as output_stream:
+                while chunk := input_stream.read(64 * 1024):
+                    total += len(chunk)
+                    if total > MAX_EXPANDED_BYTES:
+                        raise PackError("Rule Pack directory exceeds expanded size limit")
+                    output_stream.write(chunk)
+        except Exception:
+            target.unlink(missing_ok=True)
+            raise
 
 
 class _UniqueKeyLoader(yaml.SafeLoader):

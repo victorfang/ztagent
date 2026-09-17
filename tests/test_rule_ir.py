@@ -3,6 +3,8 @@
 # X: https://X.com/vicfcs
 # LinkedIn: https://www.linkedin.com/in/drvictorfang
 
+from time import monotonic
+
 import pytest
 from pydantic import ValidationError
 
@@ -91,4 +93,47 @@ def test_regex_timeout_fails_closed() -> None:
     )
 
     assert findings[0].category == "guardrail-error"
+    assert findings[0].action == "block"
+
+
+def test_active_rule_limit_fails_startup() -> None:
+    first = RuleDefinition(
+        id="test.security.first",
+        description="First",
+        stages=("model_input",),
+        pattern="first",
+    )
+    second = RuleDefinition(
+        id="test.security.second",
+        description="Second",
+        stages=("model_input",),
+        pattern="second",
+    )
+    loaded = pack_with(first).model_copy(update={"rules": (first, second)})
+
+    with pytest.raises(ValueError, match="configured limit"):
+        GuardrailSet.compile([loaded], max_active_rules=1)
+
+
+def test_aggregate_evaluation_budget_bounds_request_work() -> None:
+    rules = tuple(
+        RuleDefinition(
+            id=f"test.security.expensive-{index}",
+            description="Expensive expression",
+            stages=("model_input",),
+            pattern=r"(?:a|aa)+$",
+            timeout_ms=1_000,
+        )
+        for index in range(20)
+    )
+    loaded = pack_with(rules[0]).model_copy(update={"rules": rules})
+    guardrails = GuardrailSet.compile([loaded], evaluation_budget_ms=5)
+
+    started = monotonic()
+    findings = guardrails.inspect(
+        GuardrailContext(stage="model_input", content=("a" * 20_000) + "!")
+    )
+
+    assert monotonic() - started < 0.25
+    assert findings
     assert findings[0].action == "block"

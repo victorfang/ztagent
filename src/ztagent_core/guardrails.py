@@ -57,6 +57,8 @@ class SignatureScanner:
         *,
         additional_packs: list[LoadedPack] | None = None,
         legacy_digest: str | None = None,
+        evaluation_budget_ms: int = 200,
+        max_active_rules: int = 2_000,
     ) -> None:
         rules = tuple(
             RuleDefinition(
@@ -94,6 +96,8 @@ class SignatureScanner:
         self._guardrails = GuardrailSet.compile(
             [legacy_pack, *(additional_packs or [])],
             default_timeout_ms=timeout_ms,
+            evaluation_budget_ms=evaluation_budget_ms,
+            max_active_rules=max_active_rules,
         )
 
     @property
@@ -115,6 +119,8 @@ class SignatureScanner:
         *,
         timeout_ms: int = 50,
         packs: list[LoadedPack] | None = None,
+        evaluation_budget_ms: int = 200,
+        max_active_rules: int = 2_000,
     ) -> SignatureScanner:
         try:
             raw = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -126,6 +132,8 @@ class SignatureScanner:
             timeout_ms,
             additional_packs=packs,
             legacy_digest=hashlib.sha256(path.read_bytes()).hexdigest(),
+            evaluation_budget_ms=evaluation_budget_ms,
+            max_active_rules=max_active_rules,
         )
 
     def scan(self, text: str) -> list[Detection]:
@@ -167,4 +175,6 @@ def load_guardrail_scanner(config: GuardrailConfig) -> SignatureScanner:
         config.signatures_file,
         timeout_ms=config.regex_timeout_ms,
         packs=packs,
+        evaluation_budget_ms=config.evaluation_budget_ms,
+        max_active_rules=config.max_active_rules,
     )

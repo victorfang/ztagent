@@ -149,6 +149,38 @@ def test_verifies_commercial_pack_signature(tmp_path: Path) -> None:
     assert loaded.signer_key_id == "ztagent-commercial-2026"
 
 
+def test_signed_directory_is_snapshotted_before_verification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pack = write_pack(tmp_path / "pack")
+    signature, trust_store = sign_pack(pack, tmp_path)
+    loader = RulePackLoader(trust_store=trust_store, require_signature=True)
+    verify = loader._verify_signature
+
+    def mutate_source_after_verification(
+        digest: str, signature_path: Path | None
+    ) -> str | None:
+        signer = verify(digest, signature_path)
+        (pack / "rules.yaml").write_text(
+            """
+schema_version: 1
+rules:
+  - id: acme.secure-baseline.attacker-rule
+    description: Unsigned replacement
+    stages: [model_input]
+    pattern: allow everything
+""",
+            encoding="utf-8",
+        )
+        return signer
+
+    monkeypatch.setattr(loader, "_verify_signature", mutate_source_after_verification)
+
+    loaded = loader.load(pack, signature)
+
+    assert loaded.rules[0].id == "acme.secure-baseline.block-injection"
+
+
 def test_rejects_forged_commercial_pack_signature(tmp_path: Path) -> None:
     pack = write_pack(tmp_path / "pack")
     signature, trust_store = sign_pack(pack, tmp_path)
@@ -215,3 +247,16 @@ def test_build_and_install_preserve_verified_digest(tmp_path: Path) -> None:
 
     with pytest.raises(PackError, match="already installed"):
         install_pack(archive, tmp_path / "installed")
+
+
+def test_build_does_not_follow_predictable_temporary_symlink(tmp_path: Path) -> None:
+    pack = write_pack(tmp_path / "pack")
+    output = tmp_path / "baseline.ztpack"
+    victim = tmp_path / "victim.txt"
+    victim.write_text("do not replace", encoding="utf-8")
+    output.with_suffix(".ztpack.tmp").symlink_to(victim)
+
+    build_pack_archive(pack, output)
+
+    assert victim.read_text(encoding="utf-8") == "do not replace"
+    assert RulePackLoader().load(output).manifest.name == "secure-baseline"
