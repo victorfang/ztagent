@@ -2,7 +2,9 @@
 
 A lean, extensible security gateway for small and medium AI agent projects.
 
-Author: **Victor Fang**
+Author: **[Victor Fang](https://VictorFang.com)** ·
+[X](https://X.com/vicfcs) ·
+[LinkedIn](https://www.linkedin.com/in/drvictorfang)
 
 Mini Secure Agent (MSA) puts one enforcement pipeline in front of model and tool
 calls. It provides useful secure defaults without replacing your identity
@@ -172,7 +174,9 @@ msa serve              Start the gateway and portal
 See [docs/architecture.md](docs/architecture.md) for the request flow, threat
 coverage, design decisions, limitations, deployment checklist, and research
 references. See [SECURITY.md](SECURITY.md) for vulnerability reporting and
-operational security guidance.
+operational security guidance. The
+[blast-radius threat-modeling tutorial](docs/blast-radius-threat-modeling.md)
+provides worked examples for the included agents.
 
 ## Development
 

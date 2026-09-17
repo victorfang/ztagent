@@ -1,5 +1,9 @@
 # Security demonstration agents
 
+> **Author:** [Victor Fang](https://VictorFang.com) ·
+> [X](https://X.com/vicfcs) ·
+> [LinkedIn](https://www.linkedin.com/in/drvictorfang)
+
 These small LangChain applications make the security difference visible without
 sending real email, direct messages, or social posts. Every delivery goes to a
 local JSONL sandbox under `data/demos/`.

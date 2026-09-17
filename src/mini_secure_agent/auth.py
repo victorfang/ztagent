@@ -1,3 +1,8 @@
+# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
 """OIDC JWT verification compatible with Keycloak, Auth0, and similar providers."""
 
 from __future__ import annotations

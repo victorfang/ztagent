@@ -1,5 +1,9 @@
 # Security policy
 
+> **Author:** [Victor Fang](https://VictorFang.com) ·
+> [X](https://X.com/vicfcs) ·
+> [LinkedIn](https://www.linkedin.com/in/drvictorfang)
+
 ## Reporting
 
 Please report suspected vulnerabilities privately through the repository

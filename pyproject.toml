@@ -22,6 +22,11 @@ dependencies = [
   "uvicorn[standard]>=0.35,<1",
 ]
 
+[project.urls]
+Homepage = "https://VictorFang.com"
+X = "https://X.com/vicfcs"
+LinkedIn = "https://www.linkedin.com/in/drvictorfang"
+
 [project.optional-dependencies]
 langchain = ["langchain-core>=1.6.3,<2"]
 demos = [

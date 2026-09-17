@@ -1,5 +1,9 @@
 # Architecture and security plan
 
+> **Author:** [Victor Fang](https://VictorFang.com) ·
+> [X](https://X.com/vicfcs) ·
+> [LinkedIn](https://www.linkedin.com/in/drvictorfang)
+
 ## Goal and non-goals
 
 Mini Secure Agent is a compact reference implementation for teams that need a

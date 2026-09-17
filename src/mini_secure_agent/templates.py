@@ -1,6 +1,16 @@
+# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
 """Project files emitted by the setup wizard."""
 
-CONFIG_TEMPLATE = """# Mini Secure Agent configuration — secrets belong in the environment.
+CONFIG_TEMPLATE = """# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
+# Mini Secure Agent configuration — secrets belong in the environment.
 server:
   host: 127.0.0.1
   port: 8000
@@ -56,7 +66,12 @@ containment:
   # keycloak_realm: agents
 """
 
-SIGNATURES_TEMPLATE = r"""version: 1
+SIGNATURES_TEMPLATE = r"""# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
+version: 1
 signatures:
   - id: pi.ignore-instructions
     description: Attempts to override prior or system instructions
@@ -90,7 +105,12 @@ signatures:
     score: 100
 """
 
-REGO_TEMPLATE = """package mini_secure_agent.authz
+REGO_TEMPLATE = """# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
+package mini_secure_agent.authz
 
 import rego.v1
 
@@ -117,21 +137,36 @@ allow if {
 }
 """
 
-APP_TEMPLATE = '''"""Starter Mini Secure Agent application."""
+APP_TEMPLATE = '''# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
+"""Starter Mini Secure Agent application."""
 
 from mini_secure_agent.api import create_app
 
 app = create_app()
 '''
 
-ENV_TEMPLATE = """# Generate with: msa secret
+ENV_TEMPLATE = """# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
+# Generate with: msa secret
 MSA_AUDIT_HMAC_KEY=replace-with-at-least-32-random-characters
 OPENAI_API_KEY=
 # ANTHROPIC_API_KEY=
 # KEYCLOAK_ADMIN_TOKEN=
 """
 
-COMPOSE_TEMPLATE = """services:
+COMPOSE_TEMPLATE = """# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
+services:
   opa:
     image: openpolicyagent/opa:1.20.2-static
     command: ["run", "--server", "--log-format=json", "/policies"]
