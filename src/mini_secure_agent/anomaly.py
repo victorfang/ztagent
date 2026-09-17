@@ -1,3 +1,8 @@
+# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
 """Lightweight stateless scoring plus optional rolling-window counters."""
 
 from __future__ import annotations

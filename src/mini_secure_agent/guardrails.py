@@ -1,3 +1,8 @@
+# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
 """Deterministic signature guardrails for prompts and tool arguments."""
 
 from __future__ import annotations

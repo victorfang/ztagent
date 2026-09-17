@@ -1,3 +1,8 @@
+# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
 """Dependency-free administration portal."""
 
 ADMIN_HTML = r"""<!doctype html>
@@ -23,6 +28,7 @@ ADMIN_HTML = r"""<!doctype html>
     th,td { text-align:left; border-bottom:1px solid var(--line); padding:10px 7px;
       max-width:440px; overflow-wrap:anywhere } th { color:var(--muted); font-weight:500 }
     code { color:#c6d5f7 } .error { color:var(--danger) }
+    footer { margin-top:22px; color:var(--muted) } footer a { color:var(--accent) }
     @media(max-width:650px) { header { align-items:flex-start; flex-direction:column }
       input { width:100% } main { padding:18px } }
   </style>
@@ -38,6 +44,10 @@ ADMIN_HTML = r"""<!doctype html>
     <div style="overflow:auto"><table><thead><tr><th>Time</th><th>Type</th><th>Outcome</th>
       <th>Identity</th><th>Details</th></tr></thead><tbody id="events"></tbody></table></div>
   </section>
+  <footer>By <a href="https://VictorFang.com" target="_blank" rel="noopener">Victor Fang</a>
+    · <a href="https://X.com/vicfcs" target="_blank" rel="noopener">X</a>
+    · <a href="https://www.linkedin.com/in/drvictorfang" target="_blank"
+      rel="noopener">LinkedIn</a></footer>
 </main><script>
 const auth = () => ({Authorization: `Bearer ${sessionStorage.getItem("msa-token") || ""}`});
 const esc = value => String(value ?? "").replace(/[&<>"']/g,

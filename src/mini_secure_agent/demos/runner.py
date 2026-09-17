@@ -1,3 +1,8 @@
+# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
 """LangChain before/after demos for the framework's security controls."""
 
 from __future__ import annotations

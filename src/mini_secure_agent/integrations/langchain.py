@@ -1,3 +1,8 @@
+# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
 """Optional LangChain runnable adapter.
 
 The gateway stays orchestrator-neutral. This adapter puts the complete security

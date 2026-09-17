@@ -1,3 +1,8 @@
+# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
 """Small provider abstraction for hosted and OpenAI-compatible model APIs."""
 
 from __future__ import annotations

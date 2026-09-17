@@ -1,3 +1,8 @@
+# Author: Victor Fang
+# Website: https://VictorFang.com
+# X: https://X.com/vicfcs
+# LinkedIn: https://www.linkedin.com/in/drvictorfang
+
 """Append-only, HMAC-chained JSONL audit trail with secret redaction."""
 
 from __future__ import annotations
