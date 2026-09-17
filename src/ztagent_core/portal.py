@@ -3,14 +3,14 @@
 # X: https://X.com/vicfcs
 # LinkedIn: https://www.linkedin.com/in/drvictorfang
 
-"""Dependency-free administration portal."""
+"""Dependency-free ZTAgent Control Plane."""
 
 ADMIN_HTML = r"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ztagent.ai · Admin</title>
+  <title>ZTAgent Control Plane</title>
   <style>
     :root { color-scheme: dark; --bg:#0b1020; --card:#141b2d; --muted:#9ca8bf;
       --accent:#66e3c4; --danger:#ff718b; --line:#28334b; }
@@ -34,11 +34,12 @@ ADMIN_HTML = r"""<!doctype html>
   </style>
 </head>
 <body><main>
-  <header><div><h1>ztagent-core</h1><p>Open-source security console from ztagent.ai</p></div>
+  <header><div><h1>ZTAgent Control Plane</h1>
+    <p>AI agent policy, audit, and containment</p></div>
     <form id="auth"><input id="token" type="password" autocomplete="off"
-      placeholder="Admin bearer token" aria-label="Admin bearer token">
+      placeholder="Security administrator token" aria-label="Security administrator token">
       <button>Connect</button></form></header>
-  <div id="message"><p>Enter a token with the configured administrator role.</p></div>
+  <div id="message"><p>Enter a token with the configured security administrator role.</p></div>
   <section class="grid" id="summary"></section>
   <section class="card"><h2>Recent security events</h2>
     <div style="overflow:auto"><table><thead><tr><th>Time</th><th>Type</th><th>Outcome</th>

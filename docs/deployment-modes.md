@@ -43,8 +43,8 @@ The service exposes:
 | `POST /v1/agent/run` | Authenticate, authorize, inspect, and route a model request |
 | `POST /v1/tools/{tool_name}` | Authenticate, authorize, validate, and execute a registered tool |
 | `GET /health` | Process health |
-| `GET /admin` | Protected administration portal |
-| `/admin/api/*` | Role-protected audit and containment administration |
+| `GET /admin` | Protected ZTAgent Control Plane |
+| `/admin/api/*` | Role-protected Control Plane APIs for audit and containment |
 
 Example:
 

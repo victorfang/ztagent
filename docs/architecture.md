@@ -26,8 +26,8 @@ deployment work is available as consulting through [ztagent.ai](https://ztagent.
 The core is intentionally usable in two forms:
 
 - **API gateway:** `ztagent serve` runs the FastAPI application. It verifies
-  bearer tokens at HTTP ingress and centralizes provider/tool access,
-  administration, and security state.
+  bearer tokens at HTTP ingress and centralizes provider/tool access, the
+  ZTAgent Control Plane, and security state.
 - **Python SDK:** applications import `ztagent_core` and invoke
   `SecureAgentGateway` in process. The security pipeline is the same, but the
   caller must establish trusted identity and its own HTTP/browser boundary.

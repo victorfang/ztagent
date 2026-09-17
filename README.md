@@ -63,7 +63,7 @@ Contact: [ztagent.ai](https://ztagent.ai) · [VictorFang.com](https://VictorFang
 - Stateless request heuristics and memory/SQLite rolling 24-hour counters
 - HMAC-chained JSONL audit records with default secret/prompt redaction
 - Local identity containment, optional webhook, and Keycloak session revocation
-- Protected, dependency-free web administration portal
+- Protected, dependency-free **ZTAgent Control Plane** for policy, audit, and containment
 - Friendly project wizard and operational checks
 
 ## Quick start: API gateway
@@ -86,9 +86,10 @@ ztagent check
 ztagent serve
 ```
 
-Open <http://127.0.0.1:8000/admin>. Development defaults disable authentication;
-the portal therefore uses a development administrator. Production configuration
-validation refuses disabled authentication or an OPA bypass.
+Open the **ZTAgent Control Plane** at <http://127.0.0.1:8000/admin>. Development
+defaults disable authentication, so the page uses a development administrator.
+Production configuration validation refuses disabled authentication or an OPA
+bypass. The `/admin` route remains stable for API compatibility.
 
 Call the gateway:
 
