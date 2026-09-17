@@ -56,6 +56,8 @@ Unknown fields are rejected. IDs must be unique across all active packs and must
 with `<publisher>.<pack-name>.`. This gives audit events a stable global identity.
 Run `ztagent pack schema rules` (or `manifest` / `signature`) to export the
 machine-readable JSON Schema from the installed core version.
+Source policy identifies a pack as `<publisher>/<pack-name>`; the slash makes the
+boundary unambiguous even when either manifest field contains dots.
 
 `phrase` treats the pattern as literal text. `regex` is more expressive but should be
 used narrowly. Neither engine runs code or performs network access.
@@ -89,8 +91,9 @@ ztagent pack validate ./customer-support.ztpack
 ```
 
 Only declared YAML, JSON, Markdown, or text content is accepted. Undeclared files,
-symlinks, traversal paths, encrypted ZIP entries, oversized archives, excessive YAML
-aliases, hash mismatches, and unsupported schema versions are rejected.
+symlinks, traversal paths, encrypted ZIP entries, unsafe compression methods or ratios,
+oversized archives, YAML aliases, duplicate keys, hash mismatches, and unsupported schema
+versions are rejected.
 
 ## Activate packs
 
@@ -103,6 +106,10 @@ guardrails:
     - path: packs/customer-support.ztpack
       required: true
       require_signature: false
+      # expected_pack_id: acme/customer-support
+      # allowed_key_ids: [acme-rules-2026]
+      # version_spec: '>=1.0,<2'
+      # expected_digest: 64-lowercase-hex-characters
   require_signed_packs: false
   evaluation_budget_ms: 200
   max_active_rules: 2000
@@ -141,18 +148,29 @@ Verify and install before activation:
 ztagent pack validate pack.ztpack \
   --signature pack.signature.json \
   --trust-store config/trusted-publishers.yaml \
-  --require-signature
+  --require-signature \
+  --expected-pack-id ztagent/commercial-baseline \
+  --allowed-key-id ztagent-commercial-2026 \
+  --version-spec '>=2026.9'
 
 ztagent pack install pack.ztpack \
   --signature pack.signature.json \
   --trust-store config/trusted-publishers.yaml \
-  --require-signature
+  --require-signature \
+  --expected-pack-id ztagent/commercial-baseline \
+  --allowed-key-id ztagent-commercial-2026 \
+  --expected-digest "$EXPECTED_PACK_DIGEST"
 ```
 
 Installed versions are immutable and are not automatically activated. Point the
 configuration at the installed `pack.ztpack` and detached signature, then set
-`require_signature: true`. `require_signed_packs: true` enforces signatures for every
-configured pack.
+`require_signature: true`. Pin `expected_pack_id`, authorize the pack's specific
+`allowed_key_ids`, and enforce either `version_spec` or an exact `expected_digest` to
+prevent identity confusion and rollback to an older valid release.
+`require_signed_packs: true` enforces signatures for every configured pack.
+A version floor only rejects releases below that floor; a broad range still permits
+rollback within the range. Pin `expected_digest` when exact-release immutability is
+required.
 
 Signature document:
 
@@ -166,10 +184,12 @@ Signature document:
 }
 ```
 
-The signature covers the canonical SHA-256 digest of the exact manifest and declared
-contents, independent of ZIP metadata. Entitlement checks belong in the authenticated
-download service. The runtime verifies integrity and publisher identity and does not
-phone home, so a licensing outage cannot silently weaken enforcement.
+The Ed25519 signature covers `ZTAgent Rule Pack Digest v1\0` followed by the raw
+canonical SHA-256 digest of the exact manifest and declared contents. The domain prefix
+prevents a valid signature from being reused in another protocol, while the digest stays
+independent of ZIP metadata. Entitlement checks belong in the authenticated download
+service. The runtime verifies integrity and publisher identity and does not phone home,
+so a licensing outage cannot silently weaken enforcement.
 
 ## Current scope
 

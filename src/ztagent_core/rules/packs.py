@@ -43,8 +43,11 @@ MAX_ARCHIVE_BYTES = 10 * 1024 * 1024
 MAX_EXPANDED_BYTES = 25 * 1024 * 1024
 MAX_FILES = 200
 MAX_YAML_BYTES = 2 * 1024 * 1024
-MAX_ALIASES = 20
+MAX_ALIASES = 0
+MAX_COMPRESSION_RATIO = 100
 ALLOWED_SUFFIXES = {".yaml", ".yml", ".json", ".md", ".txt"}
+ALLOWED_COMPRESSION = {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
+SIGNATURE_DOMAIN = b"ZTAgent Rule Pack Digest v1\0"
 
 
 class PackError(ValueError):
@@ -58,17 +61,28 @@ class RulePackLoader:
         trust_store: Path | None = None,
         require_signature: bool = False,
         core_version: str = __version__,
+        expected_pack_id: str | None = None,
+        allowed_key_ids: list[str] | None = None,
+        version_spec: str | None = None,
+        expected_digest: str | None = None,
     ) -> None:
         self.require_signature = require_signature
         self.core_version = core_version
+        self.expected_pack_id = expected_pack_id
+        self.allowed_key_ids = frozenset(allowed_key_ids or [])
+        self.version_spec = version_spec
+        self.expected_digest = expected_digest
         self.trust_store = self._load_trust_store(trust_store) if trust_store else None
 
     def load(self, source: Path, signature_path: Path | None = None) -> LoadedPack:
         with materialize_pack(source) as root:
             manifest = self._load_manifest(root)
             self._check_compatibility(manifest)
+            self._check_source_policy(manifest)
             self._verify_contents(root, manifest)
             digest = compute_pack_digest(root, manifest)
+            if self.expected_digest is not None and digest != self.expected_digest:
+                raise PackError("Rule Pack digest does not match the configured pin")
             signer = self._verify_signature(digest, signature_path)
             rules = self._load_rules(root, manifest)
         return LoadedPack(
@@ -78,6 +92,23 @@ class RulePackLoader:
             signer_key_id=signer,
             rules=tuple(rules),
         )
+
+    def _check_source_policy(self, manifest: PackManifest) -> None:
+        pack_id = f"{manifest.publisher}/{manifest.name}"
+        if self.expected_pack_id is not None and pack_id != self.expected_pack_id:
+            raise PackError(
+                f"Expected Rule Pack {self.expected_pack_id!r}, received {pack_id!r}"
+            )
+        if self.version_spec is not None:
+            try:
+                allowed = Version(manifest.version) in SpecifierSet(self.version_spec)
+            except (InvalidSpecifier, InvalidVersion) as exc:
+                raise PackError(f"Invalid configured pack version range: {exc}") from exc
+            if not allowed:
+                raise PackError(
+                    f"Rule Pack {pack_id} {manifest.version} does not satisfy "
+                    f"configured range {self.version_spec}"
+                )
 
     def _load_manifest(self, root: Path) -> PackManifest:
         path = root / "pack.yaml"
@@ -161,6 +192,8 @@ class RulePackLoader:
         if signature_path is None:
             if self.require_signature:
                 raise PackError("A detached signature is required for this Rule Pack")
+            if self.allowed_key_ids:
+                raise PackError("Allowed signing keys require a signed Rule Pack")
             return None
         if self.trust_store is None:
             raise PackError("A trust store is required to verify a Rule Pack signature")
@@ -170,6 +203,8 @@ class RulePackLoader:
             raise PackError(f"Invalid detached signature: {exc}") from exc
         if signature.digest != digest:
             raise PackError("Detached signature digest does not match the Rule Pack")
+        if self.allowed_key_ids and signature.key_id not in self.allowed_key_ids:
+            raise PackError(f"Signing key is not allowed for this Rule Pack: {signature.key_id}")
         pem = self.trust_store.keys.get(signature.key_id)
         if pem is None:
             raise PackError(f"Untrusted Rule Pack signing key: {signature.key_id}")
@@ -181,7 +216,7 @@ class RulePackLoader:
             raise PackError("Rule Pack signing key must be Ed25519")
         try:
             encoded_signature = base64.b64decode(signature.signature, validate=True)
-            key.verify(encoded_signature, bytes.fromhex(digest))
+            key.verify(encoded_signature, SIGNATURE_DOMAIN + bytes.fromhex(digest))
         except (InvalidSignature, ValueError) as exc:
             raise PackError("Rule Pack signature verification failed") from exc
         return signature.key_id
@@ -267,11 +302,19 @@ def install_pack(
     signature_path: Path | None = None,
     trust_store: Path | None = None,
     require_signature: bool = False,
+    expected_pack_id: str | None = None,
+    allowed_key_ids: list[str] | None = None,
+    version_spec: str | None = None,
+    expected_digest: str | None = None,
 ) -> Path:
     """Verify and immutably install a pack; activation remains explicit in config."""
     loader = RulePackLoader(
         trust_store=trust_store,
         require_signature=require_signature,
+        expected_pack_id=expected_pack_id,
+        allowed_key_ids=allowed_key_ids,
+        version_spec=version_spec,
+        expected_digest=expected_digest,
     )
     loaded = loader.load(source, signature_path)
     store.mkdir(parents=True, exist_ok=True)
@@ -349,7 +392,21 @@ def materialize_pack(source: Path) -> Iterator[Path]:
             seen: set[str] = set()
             for info in infos:
                 if info.is_dir():
-                    continue
+                    raise PackError(
+                        f"Rule Pack archive contains a directory entry: {info.filename}"
+                    )
+                if info.compress_type not in ALLOWED_COMPRESSION:
+                    raise PackError(
+                        f"Unsupported Rule Pack compression method: {info.compress_type}"
+                    )
+                if (
+                    info.file_size > 1_024
+                    and (
+                        info.compress_size == 0
+                        or info.file_size / info.compress_size > MAX_COMPRESSION_RATIO
+                    )
+                ):
+                    raise PackError("Rule Pack archive exceeds compression ratio limit")
                 relative = _safe_relative_path(info.filename)
                 normalized = relative.as_posix().casefold()
                 if normalized in seen:
@@ -457,15 +514,24 @@ _UniqueKeyLoader.add_constructor(
 
 
 def _safe_yaml(path: Path) -> Any:
+    return read_yaml_document(path)[0]
+
+
+def read_yaml_document(path: Path) -> tuple[Any, bytes]:
+    """Read bounded UTF-8 YAML with safe tags and no aliases or duplicate keys."""
     content = path.read_bytes()
     if len(content) > MAX_YAML_BYTES:
         raise PackError(f"YAML file exceeds size limit: {path.name}")
-    text = content.decode("utf-8")
-    aliases = sum(1 for token in yaml.scan(text) if isinstance(token, AliasToken))
-    if aliases > MAX_ALIASES:
-        raise PackError(f"YAML file contains too many aliases: {path.name}")
-    # _UniqueKeyLoader subclasses SafeLoader; it only adds duplicate-key rejection.
-    return yaml.load(text, Loader=_UniqueKeyLoader)  # noqa: S506
+    try:
+        text = content.decode("utf-8")
+        aliases = sum(1 for token in yaml.scan(text) if isinstance(token, AliasToken))
+        if aliases > MAX_ALIASES:
+            raise PackError(f"YAML aliases are not allowed: {path.name}")
+        # _UniqueKeyLoader subclasses SafeLoader; it only adds duplicate-key rejection.
+        parsed = yaml.load(text, Loader=_UniqueKeyLoader)  # noqa: S506
+    except (UnicodeError, yaml.YAMLError) as exc:
+        raise PackError(f"Invalid YAML document {path.name}: {exc}") from exc
+    return parsed, content
 
 
 def _safe_json(path: Path) -> Any:

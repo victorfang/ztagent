@@ -13,7 +13,10 @@ import pytest
 import yaml
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from pydantic import ValidationError
+from typer.testing import CliRunner
 
+from ztagent_core.cli import app
 from ztagent_core.rules import (
     GuardrailContext,
     GuardrailSet,
@@ -22,7 +25,8 @@ from ztagent_core.rules import (
     build_pack_archive,
     install_pack,
 )
-from ztagent_core.rules.packs import compute_pack_digest
+from ztagent_core.rules.models import PackManifest, PackSignature, RuleDocument, TrustStore
+from ztagent_core.rules.packs import SIGNATURE_DOMAIN, compute_pack_digest
 
 
 def write_pack(
@@ -98,7 +102,7 @@ def sign_pack(pack: Path, tmp_path: Path) -> tuple[Path, Path]:
                 "algorithm": "ed25519",
                 "digest": digest,
                 "signature": base64.b64encode(
-                    private_key.sign(bytes.fromhex(digest))
+                    private_key.sign(SIGNATURE_DOMAIN + bytes.fromhex(digest))
                 ).decode(),
             }
         ),
@@ -119,6 +123,31 @@ def test_loads_staged_rules_with_pack_provenance(tmp_path: Path) -> None:
     assert findings[0].stage == "model_output"
     assert findings[0].pack == "secure-baseline"
     assert findings[0].pack_digest == loaded.digest
+
+
+def test_pack_models_reject_coerced_security_fields(tmp_path: Path) -> None:
+    pack = write_pack(tmp_path / "pack")
+    manifest = yaml.safe_load((pack / "pack.yaml").read_text(encoding="utf-8"))
+    rules = yaml.safe_load((pack / "rules.yaml").read_text(encoding="utf-8"))
+
+    manifest["schema_version"] = True
+    rules["schema_version"] = True
+    with pytest.raises(ValidationError):
+        PackManifest.model_validate(manifest)
+    with pytest.raises(ValidationError):
+        RuleDocument.model_validate(rules)
+    with pytest.raises(ValidationError):
+        TrustStore.model_validate({"schema_version": True, "keys": {"key": "pem"}})
+    with pytest.raises(ValidationError):
+        PackSignature.model_validate(
+            {
+                "format": "ztagent-pack-signature-v1",
+                "key_id": True,
+                "algorithm": "ed25519",
+                "digest": "0" * 64,
+                "signature": "a" * 40,
+            }
+        )
 
 
 def test_rejects_tampered_content(tmp_path: Path) -> None:
@@ -147,6 +176,63 @@ def test_verifies_commercial_pack_signature(tmp_path: Path) -> None:
 
     assert loaded.signed is True
     assert loaded.signer_key_id == "ztagent-commercial-2026"
+
+
+def test_enforces_pack_identity_signer_version_and_digest_pins(tmp_path: Path) -> None:
+    pack = write_pack(tmp_path / "pack")
+    signature, trust_store = sign_pack(pack, tmp_path)
+    digest = compute_pack_digest(pack)
+    loaded = RulePackLoader(
+        trust_store=trust_store,
+        require_signature=True,
+        expected_pack_id="acme/secure-baseline",
+        allowed_key_ids=["ztagent-commercial-2026"],
+        version_spec=">=1.2,<2",
+        expected_digest=digest,
+    ).load(pack, signature)
+
+    assert loaded.digest == digest
+
+    policies = [
+        ({"expected_pack_id": "other/pack"}, "Expected Rule Pack"),
+        ({"allowed_key_ids": ["other-key"]}, "not allowed"),
+        ({"version_spec": ">=2"}, "does not satisfy"),
+        ({"expected_digest": "0" * 64}, "configured pin"),
+    ]
+    for policy, error in policies:
+        with pytest.raises(PackError, match=error):
+            RulePackLoader(
+                trust_store=trust_store,
+                require_signature=True,
+                **policy,
+            ).load(pack, signature)
+
+
+def test_signature_is_domain_separated(tmp_path: Path) -> None:
+    pack = write_pack(tmp_path / "pack")
+    signature, trust_store = sign_pack(pack, tmp_path)
+    private_key = Ed25519PrivateKey.generate()
+    payload = json.loads(signature.read_text(encoding="utf-8"))
+    payload["signature"] = base64.b64encode(
+        private_key.sign(bytes.fromhex(payload["digest"]))
+    ).decode()
+    public_key = private_key.public_key().public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    trust_store.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": 1,
+                "keys": {"ztagent-commercial-2026": public_key.decode()},
+            }
+        ),
+        encoding="utf-8",
+    )
+    signature.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(PackError, match="signature verification failed"):
+        RulePackLoader(trust_store=trust_store).load(pack, signature)
 
 
 def test_signed_directory_is_snapshotted_before_verification(
@@ -217,6 +303,51 @@ def test_rejects_duplicate_yaml_keys(tmp_path: Path) -> None:
         RulePackLoader().load(pack)
 
 
+def test_rejects_yaml_aliases(tmp_path: Path) -> None:
+    pack = write_pack(tmp_path / "pack")
+    (pack / "rules.yaml").write_text(
+        """
+schema_version: 1
+rules:
+  - &rule
+    id: acme.secure-baseline.alias
+    description: Alias test
+    stages: [model_input]
+    pattern: unsafe
+  - *rule
+""",
+        encoding="utf-8",
+    )
+    manifest = yaml.safe_load((pack / "pack.yaml").read_text(encoding="utf-8"))
+    manifest["contents"][0]["sha256"] = hashlib.sha256(
+        (pack / "rules.yaml").read_bytes()
+    ).hexdigest()
+    (pack / "pack.yaml").write_text(
+        yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8"
+    )
+
+    with pytest.raises(PackError, match="aliases are not allowed"):
+        RulePackLoader().load(pack)
+
+
+def test_rejects_unsupported_archive_compression(tmp_path: Path) -> None:
+    archive = tmp_path / "compressed.ztpack"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_BZIP2) as output:
+        output.writestr("pack.yaml", "schema_version: 1")
+
+    with pytest.raises(PackError, match="Unsupported Rule Pack compression"):
+        RulePackLoader().load(archive)
+
+
+def test_rejects_excessive_archive_compression_ratio(tmp_path: Path) -> None:
+    archive = tmp_path / "compressed.ztpack"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as output:
+        output.writestr("pack.yaml", "x" * 100_000)
+
+    with pytest.raises(PackError, match="compression ratio"):
+        RulePackLoader().load(archive)
+
+
 def test_rejects_incompatible_core_version(tmp_path: Path) -> None:
     pack = write_pack(tmp_path / "pack", compatibility=">=9")
 
@@ -260,3 +391,21 @@ def test_build_does_not_follow_predictable_temporary_symlink(tmp_path: Path) -> 
 
     assert victim.read_text(encoding="utf-8") == "do not replace"
     assert RulePackLoader().load(output).manifest.name == "secure-baseline"
+
+
+def test_cli_enforces_pack_identity_policy(tmp_path: Path) -> None:
+    pack = write_pack(tmp_path / "pack")
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "pack",
+            "validate",
+            str(pack),
+            "--expected-pack-id",
+            "other/pack",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert isinstance(result.exception, PackError)

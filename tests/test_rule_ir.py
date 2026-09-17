@@ -41,6 +41,28 @@ def test_rule_ir_rejects_unknown_fields() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("score", "80"),
+        ("enabled", "false"),
+        ("case_sensitive", 0),
+        ("timeout_ms", "50"),
+    ],
+)
+def test_rule_ir_rejects_coerced_scalar_types(field: str, value: object) -> None:
+    rule = {
+        "id": "test.security.rule",
+        "description": "Test",
+        "stages": ["model_input"],
+        "pattern": "unsafe",
+        field: value,
+    }
+
+    with pytest.raises(ValidationError):
+        RuleDefinition.model_validate(rule)
+
+
 def test_rule_ir_rejects_duplicate_stages() -> None:
     with pytest.raises(ValidationError, match="must be unique"):
         RuleDefinition(

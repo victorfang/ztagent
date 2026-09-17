@@ -92,11 +92,22 @@ def check(
         warnings.append("authentication is disabled")
     if loaded.policy.development_allow_without_opa:
         warnings.append("OPA development bypass is enabled")
+    if any(
+        not pack.signed and pack.manifest.name != "local.legacy-signatures"
+        for pack in rules.packs
+    ):
+        warnings.append("one or more configured Rule Packs are unsigned")
     typer.secho(
         f"Configuration valid; {rule_count} guardrail rules loaded "
         f"from {len(rules.packs)} packs.",
         fg=typer.colors.GREEN,
     )
+    for pack in rules.packs:
+        trust = f"signed:{pack.signer_key_id}" if pack.signed else "unsigned"
+        typer.echo(
+            f"  {pack.manifest.publisher}.{pack.manifest.name} "
+            f"{pack.manifest.version} {pack.digest} {trust}"
+        )
     for warning in warnings:
         typer.secho(f"WARNING: {warning}", fg=typer.colors.YELLOW)
 
@@ -107,11 +118,19 @@ def pack_validate(
     signature: Path | None = typer.Option(None, "--signature"),
     trust_store: Path | None = typer.Option(None, "--trust-store"),
     require_signature: bool = typer.Option(False, "--require-signature"),
+    expected_pack_id: str | None = typer.Option(None, "--expected-pack-id"),
+    allowed_key_id: list[str] | None = typer.Option(None, "--allowed-key-id"),
+    version_spec: str | None = typer.Option(None, "--version-spec"),
+    expected_digest: str | None = typer.Option(None, "--expected-digest"),
 ) -> None:
     """Fail-closed validation of a directory or .ztpack artifact."""
     loaded = RulePackLoader(
         trust_store=trust_store,
         require_signature=require_signature,
+        expected_pack_id=expected_pack_id,
+        allowed_key_ids=allowed_key_id,
+        version_spec=version_spec,
+        expected_digest=expected_digest,
     ).load(source, signature)
     trust = f"signed by {loaded.signer_key_id}" if loaded.signed else "unsigned"
     typer.secho(
@@ -153,6 +172,10 @@ def pack_install(
     signature: Path | None = typer.Option(None, "--signature"),
     trust_store: Path | None = typer.Option(None, "--trust-store"),
     require_signature: bool = typer.Option(False, "--require-signature"),
+    expected_pack_id: str | None = typer.Option(None, "--expected-pack-id"),
+    allowed_key_id: list[str] | None = typer.Option(None, "--allowed-key-id"),
+    version_spec: str | None = typer.Option(None, "--version-spec"),
+    expected_digest: str | None = typer.Option(None, "--expected-digest"),
 ) -> None:
     """Verify and install a pack without activating it."""
     installed = install_pack(
@@ -161,6 +184,10 @@ def pack_install(
         signature_path=signature,
         trust_store=trust_store,
         require_signature=require_signature,
+        expected_pack_id=expected_pack_id,
+        allowed_key_ids=allowed_key_id,
+        version_spec=version_spec,
+        expected_digest=expected_digest,
     )
     typer.secho(f"Installed at {installed}", fg=typer.colors.GREEN)
     typer.echo("Activation is explicit: add pack.ztpack to guardrails.packs in agent.yaml.")

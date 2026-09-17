@@ -8,12 +8,24 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlparse
 
 import yaml
-from pydantic import BaseModel, Field, SecretStr, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    StrictBool,
+    StrictStr,
+    ValidationError,
+    field_validator,
+)
+
+from .rules.packs import read_yaml_document
 
 
 class ServerConfig(BaseModel):
@@ -68,13 +80,36 @@ class PolicyConfig(BaseModel):
 
 
 class RulePackSourceConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     path: Path
     signature: Path | None = None
-    required: bool = True
-    require_signature: bool = False
+    required: StrictBool = True
+    require_signature: StrictBool = False
+    expected_pack_id: str | None = Field(
+        default=None,
+        pattern=(
+            r"^[a-z0-9][a-z0-9.-]{1,63}/"
+            r"[a-z0-9][a-z0-9._-]{2,127}$"
+        ),
+    )
+    allowed_key_ids: list[StrictStr] = Field(default_factory=list, max_length=20)
+    version_spec: StrictStr | None = Field(default=None, max_length=100)
+    expected_digest: StrictStr | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+
+    @field_validator("allowed_key_ids")
+    @classmethod
+    def valid_allowed_key_ids(cls, key_ids: list[str]) -> list[str]:
+        if len(key_ids) != len(set(key_ids)):
+            raise ValueError("allowed Rule Pack key IDs must be unique")
+        if any(not re.fullmatch(r"[a-zA-Z0-9._-]{1,100}", key_id) for key_id in key_ids):
+            raise ValueError("invalid Rule Pack key ID")
+        return key_ids
 
 
 class GuardrailConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     signatures_file: Path = Path("config/signatures.yaml")
     packs: list[RulePackSourceConfig] = Field(default_factory=list, max_length=50)
     trust_store: Path | None = None
@@ -169,7 +204,7 @@ def load_config(path: str | Path | None = None) -> AppConfig:
     config_path = Path(selected_path)
     raw: dict[str, Any] = {}
     if config_path.exists():
-        loaded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        loaded, _ = read_yaml_document(config_path)
         if loaded is not None and not isinstance(loaded, dict):
             raise ValueError("Configuration root must be a mapping")
         raw = loaded or {}

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_validator
 
 GuardrailStage = Literal["model_input", "model_output", "tool_input", "tool_output"]
 RuleAction = Literal["log", "block", "contain"]
@@ -30,10 +30,10 @@ class RuleDefinition(BaseModel):
     category: str = Field(default="prompt-injection", min_length=1, max_length=100)
     severity: RuleSeverity = "high"
     action: RuleAction = "block"
-    score: int = Field(default=80, ge=0, le=100)
-    enabled: bool = True
-    case_sensitive: bool = False
-    timeout_ms: int | None = Field(default=None, ge=1, le=1_000)
+    score: StrictInt = Field(default=80, ge=0, le=100)
+    enabled: StrictBool = True
+    case_sensitive: StrictBool = False
+    timeout_ms: StrictInt | None = Field(default=None, ge=1, le=1_000)
     metadata: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("stages")
@@ -61,6 +61,13 @@ class RuleDocument(BaseModel):
     schema_version: Literal[1] = 1
     rules: tuple[RuleDefinition, ...] = Field(min_length=1, max_length=500)
 
+    @field_validator("schema_version", mode="before")
+    @classmethod
+    def exact_schema_version(cls, version: object) -> object:
+        if type(version) is not int:
+            raise ValueError("schema_version must be integer 1")
+        return version
+
     @field_validator("rules")
     @classmethod
     def unique_rule_ids(cls, rules: tuple[RuleDefinition, ...]) -> tuple[RuleDefinition, ...]:
@@ -75,6 +82,13 @@ class PackCompatibility(BaseModel):
 
     core: str = Field(default=">=0.1,<1", min_length=1, max_length=100)
     rule_ir: Literal[1] = 1
+
+    @field_validator("rule_ir", mode="before")
+    @classmethod
+    def exact_rule_ir_version(cls, version: object) -> object:
+        if type(version) is not int:
+            raise ValueError("rule_ir must be integer 1")
+        return version
 
 
 class PackContent(BaseModel):
@@ -97,6 +111,13 @@ class PackManifest(BaseModel):
     compatibility: PackCompatibility = PackCompatibility()
     contents: tuple[PackContent, ...] = Field(min_length=1, max_length=100)
     metadata: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("schema_version", mode="before")
+    @classmethod
+    def exact_schema_version(cls, version: object) -> object:
+        if type(version) is not int:
+            raise ValueError("schema_version must be integer 1")
+        return version
 
     @field_validator("contents")
     @classmethod
@@ -125,6 +146,13 @@ class TrustStore(BaseModel):
     schema_version: Literal[1] = 1
     keys: dict[str, str] = Field(min_length=1, max_length=50)
 
+    @field_validator("schema_version", mode="before")
+    @classmethod
+    def exact_schema_version(cls, version: object) -> object:
+        if type(version) is not int:
+            raise ValueError("schema_version must be integer 1")
+        return version
+
 
 class GuardrailContext(BaseModel):
     """Trusted execution context supplied to guardrail engines."""
@@ -146,6 +174,6 @@ class LoadedPack(BaseModel):
 
     manifest: PackManifest
     digest: str
-    signed: bool
+    signed: StrictBool
     signer_key_id: str | None = None
     rules: tuple[RuleDefinition, ...]

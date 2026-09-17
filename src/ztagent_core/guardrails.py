@@ -11,8 +11,14 @@ import hashlib
 from pathlib import Path
 from typing import Literal
 
-import yaml
-from pydantic import BaseModel, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictInt,
+    field_validator,
+)
 
 from .config import GuardrailConfig
 from .models import Detection
@@ -25,18 +31,20 @@ from .rules.models import (
     PackManifest,
     RuleDefinition,
 )
-from .rules.packs import RulePackLoader
+from .rules.packs import RulePackLoader, read_yaml_document
 
 
 class Signature(BaseModel):
-    id: str = Field(pattern=r"^[a-zA-Z0-9_.-]+$")
-    description: str
-    pattern: str
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(pattern=r"^[a-zA-Z0-9_.-]+$", min_length=3, max_length=128)
+    description: str = Field(min_length=1, max_length=500)
+    pattern: str = Field(min_length=1, max_length=2_000)
     category: str = "prompt-injection"
     severity: Literal["low", "medium", "high", "critical"] = "high"
     action: Literal["log", "block", "contain"] = "block"
-    score: int = Field(default=80, ge=0, le=100)
-    enabled: bool = True
+    score: StrictInt = Field(default=80, ge=0, le=100)
+    enabled: StrictBool = True
     stages: tuple[GuardrailStage, ...] = (
         "model_input",
         "tool_input",
@@ -45,8 +53,25 @@ class Signature(BaseModel):
 
 
 class SignatureFile(BaseModel):
-    version: int = 1
-    signatures: list[Signature]
+    model_config = ConfigDict(extra="forbid")
+
+    version: Literal[1] = 1
+    signatures: list[Signature] = Field(min_length=1, max_length=500)
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def exact_version(cls, version: object) -> object:
+        if type(version) is not int:
+            raise ValueError("version must be integer 1")
+        return version
+
+    @field_validator("signatures")
+    @classmethod
+    def unique_ids(cls, signatures: list[Signature]) -> list[Signature]:
+        ids = [signature.id for signature in signatures]
+        if len(ids) != len(set(ids)):
+            raise ValueError("legacy signature IDs must be unique")
+        return signatures
 
 
 class SignatureScanner:
@@ -123,15 +148,15 @@ class SignatureScanner:
         max_active_rules: int = 2_000,
     ) -> SignatureScanner:
         try:
-            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+            raw, content = read_yaml_document(path)
             rules = SignatureFile.model_validate(raw)
-        except (OSError, ValueError, yaml.YAMLError) as exc:
+        except (OSError, UnicodeError, ValueError) as exc:
             raise ValueError(f"Cannot load signature rules from {path}: {exc}") from exc
         return cls(
             rules.signatures,
             timeout_ms,
             additional_packs=packs,
-            legacy_digest=hashlib.sha256(path.read_bytes()).hexdigest(),
+            legacy_digest=hashlib.sha256(content).hexdigest(),
             evaluation_budget_ms=evaluation_budget_ms,
             max_active_rules=max_active_rules,
         )
@@ -169,6 +194,10 @@ def load_guardrail_scanner(config: GuardrailConfig) -> SignatureScanner:
             RulePackLoader(
                 trust_store=config.trust_store,
                 require_signature=config.require_signed_packs or source.require_signature,
+                expected_pack_id=source.expected_pack_id,
+                allowed_key_ids=source.allowed_key_ids,
+                version_spec=source.version_spec,
+                expected_digest=source.expected_digest,
             ).load(source.path, source.signature)
         )
     return SignatureScanner.from_sources(
