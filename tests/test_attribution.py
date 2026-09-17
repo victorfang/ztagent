@@ -5,7 +5,6 @@
 
 from pathlib import Path
 
-
 ATTRIBUTION = (
     "Victor Fang",
     "https://VictorFang.com",
