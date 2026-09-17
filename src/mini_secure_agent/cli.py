@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import secrets
 from pathlib import Path
+from typing import cast
 
 import typer
 
@@ -84,6 +86,62 @@ def check(
     typer.secho(f"Configuration valid; {rule_count} signatures loaded.", fg=typer.colors.GREEN)
     for warning in warnings:
         typer.secho(f"WARNING: {warning}", fg=typer.colors.YELLOW)
+
+
+@app.command()
+def demo(
+    scenario: str = typer.Argument(
+        "stock-injection",
+        help="stock-injection, unauthorized-publish, or article-only",
+    ),
+    mode: str = typer.Option("both", help="before, after, or both"),
+    config: Path = typer.Option(Path("config/agent.yaml"), "--config", "-c"),
+    data_dir: Path = typer.Option(Path("data/demos"), help="Sandbox output directory"),
+    live: bool = typer.Option(False, help="Use the configured OpenAI API instead of fixtures"),
+    privileged: bool = typer.Option(
+        False, help="Give the secure demo the role required for publishing"
+    ),
+) -> None:
+    """Contrast an intentionally vulnerable LangChain agent with the secured version."""
+    from .demos.runner import DemoMode, DemoScenario, create_demo_runner
+
+    scenarios = {"stock-injection", "unauthorized-publish", "article-only"}
+    modes = {"before", "after", "both"}
+    if scenario not in scenarios:
+        raise typer.BadParameter(f"scenario must be one of: {', '.join(sorted(scenarios))}")
+    if mode not in modes:
+        raise typer.BadParameter("mode must be before, after, or both")
+    loaded = load_config(config)
+    if live and loaded.provider.kind != "openai":
+        raise typer.BadParameter("live demos currently require provider.kind: openai")
+    selected_modes = ["before", "after"] if mode == "both" else [mode]
+    typer.secho(
+        "DEMO SAFETY: all email, DM, and social delivery stays in a local JSONL sandbox.",
+        fg=typer.colors.YELLOW,
+    )
+    for selected in selected_modes:
+        runner = create_demo_runner(
+            loaded,
+            data_dir / selected,
+            offline=not live,
+            privileged=privileged,
+        )
+        result = asyncio.run(
+            runner.run(
+                cast("DemoMode", selected),
+                cast("DemoScenario", scenario),
+            )
+        )
+        color = typer.colors.RED if result.status == "completed" and selected == "before" else (
+            typer.colors.GREEN
+        )
+        typer.secho(f"\n{selected.upper()}: {result.status.upper()}", fg=color, bold=True)
+        typer.echo(result.explanation)
+        if result.model_output:
+            typer.echo(f"Model output: {result.model_output}")
+        typer.echo(f"Sandbox deliveries: {len(result.outbox)}")
+        if selected == "after":
+            typer.echo("Controls: " + ", ".join(result.controls))
 
 
 @app.command()

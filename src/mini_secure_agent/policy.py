@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 
 import httpx
 
 from .config import PolicyConfig
 from .models import Decision
+
+
+class PolicyDecisionPoint(Protocol):
+    async def decide(self, policy_input: dict[str, Any]) -> Decision: ...
 
 
 class OPAClient:

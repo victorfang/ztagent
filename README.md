@@ -136,12 +136,34 @@ result = await secure_node.ainvoke({"messages": [{"role": "user", "content": "He
 The application must derive `principal` from a verified request; never accept
 identity or roles from model output or untrusted chain state.
 
+## Before/after demo agents
+
+Install the demo extra and run three small LangChain applications:
+
+```bash
+pip install -e '.[demos]'
+msa demo stock-injection
+msa demo unauthorized-publish
+msa demo article-only
+```
+
+Each command contrasts a deliberately vulnerable baseline with the protected
+framework path. The examples cover an indirect prompt injection hidden in stock
+data, unauthorized article publishing, and a safe article-only workflow.
+Email, DM, and social actions always remain in a local JSONL sandbox.
+
+Use `--live` to exercise the configured OpenAI API or stay with the default
+deterministic offline model for a repeatable, credential-free security demo.
+See [docs/demos.md](docs/demos.md) for expected output, the exact controls being
+demonstrated, and important limitations.
+
 ## CLI
 
 ```text
 msa init [DIRECTORY]   Generate config, signatures, Rego, Compose, and app files
 msa secret             Generate a strong audit HMAC key
 msa check              Validate configuration and signatures; flag dev bypasses
+msa demo               Compare vulnerable and secured LangChain demo agents
 msa serve              Start the gateway and portal
 ```
 
