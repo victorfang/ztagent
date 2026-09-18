@@ -2,12 +2,14 @@
 
 > **Author:** [Victor Fang](https://VictorFang.com) ·
 > [ztagent.ai](https://ztagent.ai) ·
+> [github.com/victorfang/ztagent](https://github.com/victorfang/ztagent) ·
 > [X](https://X.com/vicfcs) ·
 > [LinkedIn](https://www.linkedin.com/in/drvictorfang)
 
-These small LangChain applications make the security difference visible without
-sending real email, direct messages, or social posts. Every delivery goes to a
-local JSONL sandbox under `data/demos/`.
+These small LangChain applications make ZTAgent's rule visible: never trust an
+agent action; verify before execution. They do that without sending real email,
+direct messages, or social posts. Every delivery goes to a local JSONL sandbox
+under `data/demos/`.
 
 ## Install and run
 
@@ -74,7 +76,7 @@ The baseline deliberately has no trusted identity, policy decision, tool-output
 inspection, containment, or audit. It exists only inside the demo package and is
 clearly labeled in CLI output. Do not copy it into an application.
 
-### After: framework boundary
+### After: ZTAgent verifies before execution
 
 ```text
 application-supplied demo principal (verified by OIDC in a real API request)
@@ -119,3 +121,6 @@ The communication tool is intentionally not connected to SMTP or social APIs.
 That keeps the demo safe and makes the authorization result—not an external
 account—the focus. Demo construction also disables containment webhooks and
 Keycloak administration calls, even if the main application configures them.
+
+For configuration, curl examples, custom signatures, and malicious-tool
+walkthroughs, see [tutorial.md](tutorial.md).

@@ -2,8 +2,12 @@
 
 > **Author:** [Victor Fang](https://VictorFang.com) ·
 > [ztagent.ai](https://ztagent.ai) ·
+> [github.com/victorfang/ztagent](https://github.com/victorfang/ztagent) ·
 > [X](https://X.com/vicfcs) ·
 > [LinkedIn](https://www.linkedin.com/in/drvictorfang)
+
+ZTAgent (Zero Trust Security for AI Agents) follows one rule: never trust an
+agent action. Verify before execution.
 
 ## Reporting
 

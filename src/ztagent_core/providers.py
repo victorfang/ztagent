@@ -1,7 +1,5 @@
-# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 """Small provider abstraction for hosted and OpenAI-compatible model APIs."""
 

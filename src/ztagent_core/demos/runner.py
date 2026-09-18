@@ -1,7 +1,5 @@
-# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 """LangChain before/after demos for the framework's security controls."""
 
@@ -91,7 +89,7 @@ class LangChainOpenAIModel:
         try:
             from langchain_openai import ChatOpenAI
         except ImportError as exc:
-            raise RuntimeError("Live demos require: pip install 'ztagent-core[demos]'") from exc
+            raise RuntimeError("Live demos require: pip install 'ztagent[demos]'") from exc
         self._model = ChatOpenAI(model=model, temperature=0, max_retries=1)
 
     async def ainvoke(self, prompt: str) -> str:
@@ -239,7 +237,7 @@ class DemoRunner:
         try:
             from langchain_core.runnables import RunnableLambda
         except ImportError as exc:
-            raise RuntimeError("Demos require: pip install 'ztagent-core[demos]'") from exc
+            raise RuntimeError("Demos require: pip install 'ztagent[demos]'") from exc
         chain = RunnableLambda(model.ainvoke)
         result = await chain.ainvoke(prompt)
         return str(result)

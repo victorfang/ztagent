@@ -1,7 +1,5 @@
-# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 from pathlib import Path
 
@@ -11,9 +9,10 @@ ATTRIBUTION = (
     "https://X.com/vicfcs",
     "https://www.linkedin.com/in/drvictorfang",
 )
+HEADER = "# ZTAgent.ai : Zero Trust Security for AI Agents\n# Author: VictorFang.com\n"
 
 
-def test_code_and_configuration_carry_author_attribution() -> None:
+def test_source_files_carry_compact_brand_header() -> None:
     files = [
         *Path("src").rglob("*.py"),
         *Path("tests").rglob("*.py"),
@@ -22,14 +21,17 @@ def test_code_and_configuration_carry_author_attribution() -> None:
         Path("app.py"),
         Path("compose.yaml"),
         Path("policies/authz.rego"),
-        Path("pyproject.toml"),
         Path(".env.example"),
     ]
-
     for path in files:
         content = path.read_text(encoding="utf-8")
-        for expected in ATTRIBUTION:
-            assert expected in content, f"{path} is missing {expected}"
+        assert content.startswith(HEADER), f"{path} is missing compact ZTAgent header"
+
+
+def test_pyproject_carries_author_attribution() -> None:
+    content = Path("pyproject.toml").read_text(encoding="utf-8")
+    for expected in ATTRIBUTION:
+        assert expected in content, f"pyproject.toml is missing {expected}"
 
 
 def test_documents_carry_author_attribution() -> None:

@@ -1,7 +1,5 @@
-# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 """Dependency-free administration portal."""
 
@@ -10,7 +8,7 @@ ADMIN_HTML = r"""<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ztagent.ai · Admin</title>
+  <title>ZTAgent · Admin</title>
   <style>
     :root { color-scheme: dark; --bg:#0b1020; --card:#141b2d; --muted:#9ca8bf;
       --accent:#66e3c4; --danger:#ff718b; --line:#28334b; }
@@ -34,7 +32,7 @@ ADMIN_HTML = r"""<!doctype html>
   </style>
 </head>
 <body><main>
-  <header><div><h1>ztagent-core</h1><p>Open-source security console from ztagent.ai</p></div>
+  <header><div><h1>ZTAgent</h1><p>Zero Trust Security for AI Agents</p></div>
     <form id="auth"><input id="token" type="password" autocomplete="off"
       placeholder="Admin bearer token" aria-label="Admin bearer token">
       <button>Connect</button></form></header>

@@ -1,16 +1,12 @@
-# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 """Project files emitted by the setup wizard."""
 
-CONFIG_TEMPLATE = """# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+CONFIG_TEMPLATE = """# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
-# ztagent-core configuration — secrets belong in the environment.
+# ZTAgent configuration — secrets belong in the environment.
 server:
   host: 127.0.0.1
   port: 8000
@@ -66,10 +62,8 @@ containment:
   # keycloak_realm: agents
 """
 
-SIGNATURES_TEMPLATE = r"""# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+SIGNATURES_TEMPLATE = r"""# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 version: 1
 signatures:
@@ -105,10 +99,8 @@ signatures:
     score: 100
 """
 
-REGO_TEMPLATE = """# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+REGO_TEMPLATE = """# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 package ztagent_core.authz
 
@@ -137,22 +129,18 @@ allow if {
 }
 """
 
-APP_TEMPLATE = '''# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+APP_TEMPLATE = '''# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
-"""Starter ztagent-core application."""
+"""Starter ZTAgent application."""
 
 from ztagent_core.api import create_app
 
 app = create_app()
 '''
 
-ENV_TEMPLATE = """# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+ENV_TEMPLATE = """# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 # Generate with: ztagent secret
 ZTAGENT_AUDIT_HMAC_KEY=replace-with-at-least-32-random-characters
@@ -161,10 +149,8 @@ OPENAI_API_KEY=
 # KEYCLOAK_ADMIN_TOKEN=
 """
 
-COMPOSE_TEMPLATE = """# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+COMPOSE_TEMPLATE = """# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 services:
   opa:

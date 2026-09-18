@@ -2,6 +2,7 @@
 
 > **Author:** [Victor Fang](https://VictorFang.com) ·
 > [ztagent.ai](https://ztagent.ai) ·
+> [github.com/victorfang/ztagent](https://github.com/victorfang/ztagent) ·
 > [X](https://X.com/vicfcs) ·
 > [LinkedIn](https://www.linkedin.com/in/drvictorfang)
 
@@ -12,7 +13,7 @@ radius**.
 
 This tutorial provides a repeatable way to model blast radius before deploying
 an agent. It uses the stock, article, and communication demos included in
-ztagent-core:
+ZTAgent:
 
 ```bash
 pip install -e '.[demos]'
@@ -167,7 +168,7 @@ read all drafts.
 | Persistence | 2 | Messages remain queued/delivered |
 | **Total** | **14/24** | High exfiltration radius |
 
-### After ztagent-core
+### After ZTAgent
 
 ```text
 typed ticker → tool policy → stock lookup → tool-output signature scan
@@ -268,7 +269,7 @@ Recommended production obligations go beyond a role:
 }
 ```
 
-ztagent-core currently demonstrates role/risk policy, not a complete human
+ZTAgent currently demonstrates role/risk policy, not a complete human
 approval primitive. Add approval verification before connecting a real social
 API.
 
@@ -329,7 +330,7 @@ model proposes customer_id=customer_123
   → delivery service enforces resolved recipient and idempotency
 ```
 
-The ztagent-core demo intentionally writes only to a local outbox. It does
+The ZTAgent demo intentionally writes only to a local outbox. It does
 not contain SMTP, social SDKs, webhooks, or arbitrary HTTP delivery.
 
 ## 7. Model detection and containment separately
@@ -356,7 +357,7 @@ Evidence required:
 Expected TTD / TTC:
 ```
 
-ztagent-core applies a local identity block before optional external
+ZTAgent applies a local identity block before optional external
 containment. Its tool-output detector blocks propagation but deliberately does
 not automatically punish the user whose request encountered poisoned upstream
 data.

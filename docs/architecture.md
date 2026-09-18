@@ -2,24 +2,57 @@
 
 > **Author:** [Victor Fang](https://VictorFang.com) ·
 > [ztagent.ai](https://ztagent.ai) ·
+> [github.com/victorfang/ztagent](https://github.com/victorfang/ztagent) ·
 > [X](https://X.com/vicfcs) ·
 > [LinkedIn](https://www.linkedin.com/in/drvictorfang)
 
 ## Goal and non-goals
 
-ztagent-core is the Apache-2.0 security gateway from [ztagent.ai](https://ztagent.ai).
-It is a compact, self-hosted implementation for teams that need a consistent
-security boundary around multiple model providers and orchestrators. It keeps
-policy, detection, audit, and response replaceable behind small Python
-interfaces.
+**ZTAgent** is Zero Trust Security for AI Agents. The product rule is:
+
+> Never trust an agent action. Verify before execution.
+
+This repository is the Apache-2.0 **ZTAgent Core** from
+[ztagent.ai](https://ztagent.ai)
+([github.com/victorfang/ztagent](https://github.com/victorfang/ztagent)).
+Originally developed by Victor Fang in 2026, it is a compact, self-hosted
+security framework for AI agents, from small developer projects to enterprise
+systems. It keeps policy, detection, audit, and response replaceable behind
+small Python interfaces.
 
 It is not an LLM sandbox, malware scanner, DLP product, identity provider, WAF,
 SIEM, or assurance certification. It does not claim to reliably identify every
 prompt injection. Those concerns should integrate at deployment boundaries.
 
-A commercial **ztagent Enterprise** edition is planned for organizations that
+A commercial **ZTAgent Enterprise** edition is planned for organizations that
 need vendor-supported controls beyond this core. Custom policy, tool, and
 deployment work is available as consulting through [ztagent.ai](https://ztagent.ai).
+
+Hands-on examples (configuration, prompt injection, malicious tools) are in
+[tutorial.md](tutorial.md). Three adoption shapes — standalone process,
+LangGraph/Auth0 embed, and library-only imports — are described there and in
+the README.
+
+## Integration shapes
+
+```text
+1. Standalone
+   Client → ztagent serve (FastAPI) → gateway → OpenAI / tools
+   Needs: API key + audit HMAC. Auth0/LangGraph optional.
+
+2. Existing LangGraph + Auth0 (or Keycloak)
+   Client → your app (JWT) → LangGraph node → SecureAgentGateway
+                                      ↘ execute_tool / model.generate
+   Needs: OIDC JWKS config. Graph must not call providers directly.
+
+3. Modules in your code
+   Your handler → SignatureScanner / ToolRegistry / SecureAgentGateway
+   Needs: you call the module on every untrusted path.
+```
+
+The PEP contract is the same in all three: verify identity, scan input, decide
+policy, then execute. Orchestrator adapters (LangChain `Runnable`, usable as a
+LangGraph node) must not wrap a second, unprotected model client.
 
 ## Request flow
 
@@ -143,9 +176,8 @@ should:
 ## Constructive scope choices
 
 The first release deliberately avoids building a full agent loop. Agent loops
-are orchestrator-specific and frequently create bypass paths. ztagent-core
-instead owns a small gateway contract that LangChain and custom harnesses can
-call.
+are orchestrator-specific and frequently create bypass paths. ZTAgent instead
+owns a small gateway contract that LangChain and custom harnesses can call.
 
 It also avoids embedding Keycloak, OPA, Redis, a reverse proxy, and a JavaScript
 build chain in one package. OPA has a minimal Compose service; identity and edge

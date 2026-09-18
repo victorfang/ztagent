@@ -3,9 +3,9 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ztagent-core"
+name = "ztagent"
 version = "0.1.0"
-description = "Open-source AI agent security gateway from ztagent.ai"
+description = "ZTAgent: Zero Trust Security for AI Agents. Never trust an agent action. Verify before execution."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}

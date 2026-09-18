@@ -1,7 +1,5 @@
-# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 """Optional LangChain runnable adapter.
 
@@ -25,7 +23,7 @@ def as_langchain_runnable(
         from langchain_core.runnables import RunnableLambda
     except ImportError as exc:
         raise RuntimeError(
-            "LangChain integration requires: pip install 'ztagent-core[langchain]'"
+            "LangChain integration requires: pip install 'ztagent[langchain]'"
         ) from exc
 
     async def secure_call(value: AgentRequest | dict[str, Any]) -> dict[str, Any]:

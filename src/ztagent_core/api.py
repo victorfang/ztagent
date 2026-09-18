@@ -1,7 +1,5 @@
-# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 """FastAPI API gateway and protected administration API."""
 
@@ -120,8 +118,11 @@ def create_app(
     secured = gateway or create_gateway(cfg)
     authenticator = JWTAuthenticator(cfg.auth)
     app = FastAPI(
-        title="ztagent-core",
-        summary="Open-source AI agent security gateway from ztagent.ai",
+        title="ZTAgent",
+        summary=(
+            "Zero Trust Security for AI Agents. "
+            "Never trust an agent action. Verify before execution."
+        ),
         version="0.1.0",
         docs_url="/docs" if cfg.server.environment != "production" else None,
         redoc_url=None,

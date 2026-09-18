@@ -1,7 +1,5 @@
-# Author: Victor Fang
-# Website: https://VictorFang.com
-# X: https://X.com/vicfcs
-# LinkedIn: https://www.linkedin.com/in/drvictorfang
+# ZTAgent.ai : Zero Trust Security for AI Agents
+# Author: VictorFang.com
 
 """Friendly command-line setup and operations."""
 
@@ -28,7 +26,7 @@ from .templates import (
 
 app = typer.Typer(
     name="ztagent",
-    help="Set up and operate ztagent-core, the open-source security gateway from ztagent.ai.",
+    help="Set up and operate ZTAgent Core. Never trust an agent action. Verify before execution.",
     no_args_is_help=True,
 )
 
@@ -38,7 +36,7 @@ def init(
     directory: Path = typer.Argument(Path("."), help="Project directory"),
     force: bool = typer.Option(False, "--force", help="Replace generated files"),
 ) -> None:
-    """Create a ready-to-customize ztagent-core project."""
+    """Create a ready-to-customize ZTAgent project."""
     files = {
         "config/agent.yaml": CONFIG_TEMPLATE,
         "config/signatures.yaml": SIGNATURES_TEMPLATE,
@@ -59,7 +57,7 @@ def init(
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(content, encoding="utf-8")
         typer.echo(f"  created {destination}")
-    typer.secho("\nztagent-core is ready.", fg=typer.colors.GREEN, bold=True)
+    typer.secho("\nZTAgent Core is ready.", fg=typer.colors.GREEN, bold=True)
     typer.echo("1. Copy .env.example to .env and set provider credentials.")
     typer.echo("2. Replace its audit key with the output of: ztagent secret")
     typer.echo("3. Start OPA: docker compose up -d")
