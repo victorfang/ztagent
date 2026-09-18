@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ztagent"
-version = "0.1.0"
+version = "0.1.1"
 description = "ZTAgent: Zero Trust Security for AI Agents. Never trust an agent action. Verify before execution."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -25,6 +25,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://ztagent.ai"
 Repository = "https://github.com/victorfang/ztagent"
+Documentation = "https://github.com/victorfang/ztagent/blob/main/docs/tutorial.md"
 Author = "https://VictorFang.com"
 X = "https://X.com/vicfcs"
 LinkedIn = "https://www.linkedin.com/in/drvictorfang"

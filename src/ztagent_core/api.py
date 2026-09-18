@@ -123,7 +123,7 @@ def create_app(
             "Zero Trust Security for AI Agents. "
             "Never trust an agent action. Verify before execution."
         ),
-        version="0.1.0",
+        version="0.1.1",
         docs_url="/docs" if cfg.server.environment != "production" else None,
         redoc_url=None,
     )

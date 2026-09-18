@@ -148,9 +148,10 @@ signatures, tool registry, and gateway code sit underneath.
 | **2. Integrate an existing app** | LangGraph / LangChain, Auth0 (or Keycloak), your tools | Wrap model and tool edges with the ZTAgent gateway | OIDC issuer, audience, JWKS. Do not take identity from graph state |
 | **3. Import modules only** | Your own server and orchestrator | Call `SignatureScanner`, `ToolRegistry`, or `SecureAgentGateway` in-process | No FastAPI process required |
 
-Hands-on attack examples (injection, malicious tools) are in
-[docs/tutorial.md](docs/tutorial.md). Architecture detail is in
-[docs/architecture.md](docs/architecture.md).
+Hands-on attack examples (injection, malicious tools) are in the
+[tutorial](https://github.com/victorfang/ztagent/blob/main/docs/tutorial.md).
+Architecture detail is in
+[docs/architecture.md](https://github.com/victorfang/ztagent/blob/main/docs/architecture.md).
 
 ### 1. Standalone ZTAgent
 
@@ -221,7 +222,8 @@ auth:
 ```
 
 The same pattern works with Keycloak or any OIDC provider that issues RS256
-access tokens. See [docs/tutorial.md](docs/tutorial.md#2-integrate-with-langgraph-auth0-and-existing-apps).
+access tokens. See the
+[LangGraph + Auth0 section](https://github.com/victorfang/ztagent/blob/main/docs/tutorial.md#2-integrate-with-langgraph-auth0-and-existing-apps).
 
 ### 3. Import only the modules you need
 
@@ -387,10 +389,12 @@ Email, DM, and social actions always remain in a local JSONL sandbox.
 
 Use `--live` to exercise the configured OpenAI API or stay with the default
 deterministic offline model for a repeatable, credential-free security demo.
-See [docs/tutorial.md](docs/tutorial.md) for a step-by-step walkthrough of
-configuration, prompt injection, and malicious tool use. See
-[docs/demos.md](docs/demos.md) for expected output, the exact controls being
-demonstrated, and important limitations.
+See the [tutorial](https://github.com/victorfang/ztagent/blob/main/docs/tutorial.md)
+for a step-by-step walkthrough of configuration, prompt injection, and malicious
+tool use. See
+[docs/demos.md](https://github.com/victorfang/ztagent/blob/main/docs/demos.md)
+for expected output, the exact controls being demonstrated, and important
+limitations.
 
 ## CLI
 
@@ -404,13 +408,15 @@ ztagent serve              Start the gateway and portal
 
 ## Architecture and security scope
 
-See the [hands-on tutorial](docs/tutorial.md) for configuration, prompt-injection
-blocks, malicious tool use, and audit examples. See
-[docs/architecture.md](docs/architecture.md) for the request flow, threat
-coverage, design decisions, limitations, deployment checklist, and research
-references. See [SECURITY.md](SECURITY.md) for vulnerability reporting and
-operational security guidance. The
-[blast-radius threat-modeling tutorial](docs/blast-radius-threat-modeling.md)
+See the [hands-on tutorial](https://github.com/victorfang/ztagent/blob/main/docs/tutorial.md)
+for configuration, prompt-injection blocks, malicious tool use, and audit
+examples. See
+[docs/architecture.md](https://github.com/victorfang/ztagent/blob/main/docs/architecture.md)
+for the request flow, threat coverage, design decisions, limitations, deployment
+checklist, and research references. See
+[SECURITY.md](https://github.com/victorfang/ztagent/blob/main/SECURITY.md) for
+vulnerability reporting and operational security guidance. The
+[blast-radius threat-modeling tutorial](https://github.com/victorfang/ztagent/blob/main/docs/blast-radius-threat-modeling.md)
 provides worked examples for the included agents.
 
 ## Development
