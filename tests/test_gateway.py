@@ -34,6 +34,15 @@ class AllowPolicy:
         return Decision(allowed=True, reason="test")
 
 
+class CapturePolicy:
+    def __init__(self) -> None:
+        self.inputs: list[dict[str, object]] = []
+
+    async def decide(self, policy_input: dict[str, object]) -> Decision:
+        self.inputs.append(policy_input)
+        return Decision(allowed=True, reason="test")
+
+
 def gateway(tmp_path: Path) -> tuple[SecureAgentGateway, FakeProvider]:
     config = AppConfig()
     config.provider.model = "test-model"
@@ -115,6 +124,85 @@ async def test_model_output_is_scanned_before_delivery(tmp_path: Path) -> None:
 
 class NoArguments(BaseModel):
     pass
+
+
+class TransferArguments(BaseModel):
+    amount_cents: int
+    account_ref: str
+
+
+@pytest.mark.asyncio
+async def test_tool_policy_receives_projected_context_not_raw_arguments(tmp_path: Path) -> None:
+    secured, _ = gateway(tmp_path)
+    policy = CapturePolicy()
+    secured.policy = policy  # type: ignore[assignment]
+    registry = ToolRegistry()
+    registry.register(
+        ToolSpec(
+            name="transfer",
+            description="Synthetic transfer",
+            arguments=TransferArguments,
+            handler=lambda _: {"status": "ok"},
+            risk="high",
+            policy_context=lambda args: {  # type: ignore[attr-defined]
+                "amount_cents": args.amount_cents,
+                "destination_type": "external",
+            },
+        )
+    )
+    secured.tools = registry
+
+    await secured.execute_tool(
+        "transfer",
+        {"amount_cents": 100_000, "account_ref": "secret-account"},
+        Principal(subject="user-1"),
+    )
+
+    resource = policy.inputs[0]["resource"]
+    assert isinstance(resource, dict)
+    assert resource["authorization_context"] == {
+        "amount_cents": 100_000,
+        "destination_type": "external",
+    }
+    assert "account_ref" not in resource["authorization_context"]
+    assert "secret-account" not in str(secured.audit.read())
+
+
+@pytest.mark.asyncio
+async def test_policy_context_failure_blocks_before_tool_execution(tmp_path: Path) -> None:
+    secured, _ = gateway(tmp_path)
+    executed = False
+
+    def fail_context(_: BaseModel) -> dict[str, object]:
+        raise ValueError("projection failed")
+
+    def handler(_: BaseModel) -> dict[str, str]:
+        nonlocal executed
+        executed = True
+        return {"status": "unexpected"}
+
+    registry = ToolRegistry()
+    registry.register(
+        ToolSpec(
+            name="transfer",
+            description="Synthetic transfer",
+            arguments=TransferArguments,
+            handler=handler,
+            risk="high",
+            policy_context=fail_context,
+        )
+    )
+    secured.tools = registry
+
+    with pytest.raises(ValueError, match="projection failed"):
+        await secured.execute_tool(
+            "transfer",
+            {"amount_cents": 100_000, "account_ref": "secret-account"},
+            Principal(subject="user-1"),
+        )
+
+    assert executed is False
+    assert secured.audit.read()[-1]["event"]["event_type"] == "tool_validation"
 
 
 @pytest.mark.asyncio

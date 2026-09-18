@@ -175,12 +175,29 @@ class SecureAgentGateway:
         findings.extend(self.anomaly.observe_request(principal.subject, 1, len(argument_text)))
         if self._must_block(findings):
             await self._deny(principal, request_id, source_ip, findings)
+        try:
+            validated_arguments = self.tools.validate(name, arguments)
+            authorization_context = self.tools.policy_context(name, validated_arguments)
+        except (TypeError, ValueError) as exc:
+            self._audit(
+                "tool_validation",
+                "blocked",
+                principal,
+                request_id,
+                source_ip,
+                {"tool": name, "error_type": type(exc).__name__},
+            )
+            raise
         decision = await self.policy.decide(
             {
                 "action": "tool.execute",
                 "subject": principal.subject,
                 "roles": sorted(principal.roles),
-                "resource": {"tool": name, "risk": spec.risk},
+                "resource": {
+                    "tool": name,
+                    "risk": spec.risk,
+                    "authorization_context": authorization_context,
+                },
                 "context": {"source_ip": source_ip, "request_id": request_id},
             }
         )
@@ -199,7 +216,7 @@ class SecureAgentGateway:
             },
         )
         try:
-            result = await self.tools.execute(name, arguments)
+            result = await self.tools.execute_validated(name, validated_arguments)
         except Exception as exc:
             self._audit(
                 "tool_call",

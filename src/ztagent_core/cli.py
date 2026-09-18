@@ -197,7 +197,10 @@ def pack_install(
 def demo(
     scenario: str = typer.Argument(
         "stock-injection",
-        help="stock-injection, unauthorized-publish, or article-only",
+        help=(
+            "stock-injection, unauthorized-publish, article-only, fintech-refund, "
+            "or rogue-agent-egress"
+        ),
     ),
     mode: str = typer.Option("both", help="before, after, or both"),
     config: Path = typer.Option(Path("config/agent.yaml"), "--config", "-c"),
@@ -210,7 +213,13 @@ def demo(
     """Contrast an intentionally vulnerable LangChain agent with the secured version."""
     from .demos.runner import DemoMode, DemoScenario, create_demo_runner
 
-    scenarios = {"stock-injection", "unauthorized-publish", "article-only"}
+    scenarios = {
+        "stock-injection",
+        "unauthorized-publish",
+        "article-only",
+        "fintech-refund",
+        "rogue-agent-egress",
+    }
     modes = {"before", "after", "both"}
     if scenario not in scenarios:
         raise typer.BadParameter(f"scenario must be one of: {', '.join(sorted(scenarios))}")
@@ -225,7 +234,8 @@ def demo(
         )
     selected_modes = ["before", "after"] if mode == "both" else [mode]
     typer.secho(
-        "DEMO SAFETY: all email, DM, and social delivery stays in a local JSONL sandbox.",
+        "DEMO SAFETY: simulated funds, demo web tools, email, DM, and social delivery "
+        "stay local. --live may contact the configured model provider and OPA.",
         fg=typer.colors.YELLOW,
     )
     for selected in selected_modes:
@@ -251,6 +261,8 @@ def demo(
         if result.model_output:
             typer.echo(f"Model output: {result.model_output}")
         typer.echo(f"Sandbox deliveries: {len(result.outbox)}")
+        typer.echo(f"Sandbox refunds: {len(result.transactions)}")
+        typer.echo(f"Sandbox network writes: {len(result.network_events)}")
         if selected == "after":
             typer.echo("Controls: " + ", ".join(result.controls))
 

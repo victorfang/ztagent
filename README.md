@@ -201,19 +201,23 @@ identity or roles from model output or untrusted chain state.
 
 ## Before/after demo agents
 
-Install the demo extra and run three small LangChain applications:
+Install the demo extra and run five small LangChain applications:
 
 ```bash
 pip install -e '.[demos]'
 ztagent demo stock-injection
 ztagent demo unauthorized-publish
 ztagent demo article-only
+ztagent demo fintech-refund
+ztagent demo rogue-agent-egress
 ```
 
 Each command contrasts a deliberately vulnerable baseline with the protected
-framework path. The examples cover an indirect prompt injection hidden in stock
-data, unauthorized article publishing, and a safe article-only workflow.
-Email, DM, and social actions always remain in a local JSONL sandbox.
+framework path. The examples cover indirect prompt injection, unauthorized
+publishing, a safe article-only workflow, a compromised fintech refund identity,
+and rogue-agent communication over a disguised web write. Simulated funds and
+demo-tool web, email, DM, and social side effects remain in local JSONL sandboxes;
+`--live` may still contact the configured model provider and OPA.
 
 Use `--live` to exercise the configured OpenAI API or stay with the default
 deterministic offline model for a repeatable, credential-free security demo.

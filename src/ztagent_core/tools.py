@@ -15,6 +15,7 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 ToolHandler = Callable[[BaseModel], Any | Awaitable[Any]]
+PolicyContextBuilder = Callable[[BaseModel], dict[str, Any]]
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,7 @@ class ToolSpec:
     arguments: type[BaseModel]
     handler: ToolHandler
     risk: Literal["low", "medium", "high"] = "medium"
+    policy_context: PolicyContextBuilder | None = None
 
     def schema(self) -> dict[str, Any]:
         return {
@@ -53,10 +55,24 @@ class ToolRegistry:
         names = allowed if allowed is not None else list(self._tools)
         return [self.get(name).schema() for name in names]
 
-    async def execute(self, name: str, raw_arguments: dict[str, Any]) -> Any:
+    def validate(self, name: str, raw_arguments: dict[str, Any]) -> BaseModel:
+        return self.get(name).arguments.model_validate(raw_arguments)
+
+    def policy_context(self, name: str, arguments: BaseModel) -> dict[str, Any]:
+        builder = self.get(name).policy_context
+        return builder(arguments) if builder is not None else {}
+
+    async def execute_validated(self, name: str, arguments: BaseModel) -> Any:
         spec = self.get(name)
-        arguments = spec.arguments.model_validate(raw_arguments)
+        if not isinstance(arguments, spec.arguments):
+            raise TypeError(
+                f"Validated arguments for {name!r} must be {spec.arguments.__name__}"
+            )
         result = spec.handler(arguments)
         if inspect.isawaitable(result):
             return await result
         return result
+
+    async def execute(self, name: str, raw_arguments: dict[str, Any]) -> Any:
+        arguments = self.validate(name, raw_arguments)
+        return await self.execute_validated(name, arguments)

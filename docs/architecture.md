@@ -108,6 +108,10 @@ security boundaries.
 7. Tool authorization intent is durably audited before a handler runs, followed
    by completion/error. Side-effecting handlers should also implement business
    idempotency because a process failure can leave execution outcome uncertain.
+8. Tools may derive a minimal `authorization_context` from already validated
+   arguments. This lets OPA evaluate amount bands, destination classes, approvals,
+   or semantic write effects without receiving raw account references or message
+   content. Projection code is trusted and should disclose only policy-required data.
 
 ## Audit design
 
