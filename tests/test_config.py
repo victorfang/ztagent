@@ -34,3 +34,71 @@ def test_production_rejects_symmetric_jwt_algorithm() -> None:
 
     with pytest.raises(ValueError, match="asymmetric"):
         config.validate_security()
+
+
+def test_rule_pack_configuration_is_explicit(tmp_path: Path) -> None:
+    path = tmp_path / "agent.yaml"
+    path.write_text(
+        """
+guardrails:
+  trust_store: config/trusted-publishers.yaml
+  require_signed_packs: true
+  packs:
+    - path: packs/commercial.ztpack
+      signature: packs/commercial.signature.json
+      required: true
+      require_signature: true
+      expected_pack_id: ztagent/commercial
+      allowed_key_ids: [ztagent-commercial-2026]
+      version_spec: '>=1,<2'
+      expected_digest: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(path)
+
+    assert config.guardrails.require_signed_packs is True
+    assert config.guardrails.packs[0].path == Path("packs/commercial.ztpack")
+    assert config.guardrails.packs[0].require_signature is True
+    assert config.guardrails.packs[0].expected_pack_id == "ztagent/commercial"
+    assert config.guardrails.packs[0].allowed_key_ids == ["ztagent-commercial-2026"]
+
+
+@pytest.mark.parametrize(
+    "pack_fields,error",
+    [
+        ("      unknown_policy: true\n", "extra_forbidden"),
+        ("      require_signature: 'false'\n", "bool_type"),
+        ("      expected_pack_id: acme.foo.bar\n", "string_pattern_mismatch"),
+    ],
+)
+def test_rule_pack_configuration_rejects_unsafe_values(
+    tmp_path: Path, pack_fields: str, error: str
+) -> None:
+    path = tmp_path / "agent.yaml"
+    path.write_text(
+        "guardrails:\n"
+        "  packs:\n"
+        "    - path: pack.ztpack\n"
+        f"{pack_fields}",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match=error):
+        load_config(path)
+
+
+def test_configuration_rejects_duplicate_yaml_keys(tmp_path: Path) -> None:
+    path = tmp_path / "agent.yaml"
+    path.write_text(
+        "guardrails:\n"
+        "  packs:\n"
+        "    - path: pack.ztpack\n"
+        "      allowed_key_ids: [trusted]\n"
+        "      allowed_key_ids: [attacker]\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="duplicate key"):
+        load_config(path)

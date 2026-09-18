@@ -22,6 +22,9 @@ security fixes.
 - Never commit `.env`, provider credentials, identity tokens, or audit HMAC keys.
 - Keep authentication and fail-closed OPA enforcement enabled in production.
 - Treat signature and Rego changes as security-sensitive code changes.
+- Require detached signatures for third-party/commercial Rule Packs, provision
+  publisher keys separately, constrain each source's expected pack ID and
+  allowed keys, pin pack versions or digests, and review trust-store changes.
 - Do not expose OPA, SQLite state, the blocklist, or audit files publicly.
 - Put high-impact tools behind least-privilege credentials, isolation, and human
   approval. Do not register generic shell or unrestricted HTTP tools.

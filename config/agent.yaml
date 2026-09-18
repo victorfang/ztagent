@@ -31,7 +31,14 @@ policy:
 
 guardrails:
   signatures_file: config/signatures.yaml
+  packs: []
+  # Commercial sources should set require_signature, expected_pack_id,
+  # allowed_key_ids, and version_spec or expected_digest.
+  # trust_store: config/trusted-publishers.yaml
+  require_signed_packs: false
   regex_timeout_ms: 50
+  evaluation_budget_ms: 200
+  max_active_rules: 2000
   max_prompt_chars: 100000
   block_score: 80
 

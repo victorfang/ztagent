@@ -10,11 +10,32 @@ Author: **[Victor Fang](https://VictorFang.com)** ·
 It provides useful secure defaults without replacing your identity provider,
 reverse proxy, model host, or SIEM.
 
+## Use it as an API gateway or SDK
+
+**ZTAgent supports both deployment modes:**
+
+- **API gateway:** run `ztagent serve` to expose authenticated HTTP endpoints for
+  model and registered-tool calls. This centralizes policy, provider
+  credentials, audit, anomaly detection, containment, and administration for
+  clients in any language.
+- **Python SDK:** import `ztagent_core` and call `SecureAgentGateway` or
+  `create_gateway()` inside an existing Python/LangChain application. This uses
+  the same enforcement pipeline without an internal HTTP hop.
+
+ZTAgent is an AI application security gateway, not a replacement for an edge
+reverse proxy, WAF, DDoS control, or cloud API-management service. In SDK mode,
+the embedding application owns ingress authentication and must derive
+`Principal` from trusted identity claims.
+
+See [API gateway and SDK deployment modes](docs/deployment-modes.md) for setup
+examples, security responsibilities, a hybrid topology, and a selection guide.
+
 ## Editions and services
 
 | Offering | What it is |
 |---|---|
 | **ztagent-core** (this repository) | Apache-2.0 foundation you can self-host, audit, and extend |
+| **ZTAgent commercial Rule Packs** | Optional signed, curated guardrails using the same data-only Rule IR |
 | **ztagent Enterprise** | Commercial edition for production organizations (coming) |
 | **Consulting** | Custom policy, tools, threat modeling, and deployment help |
 
@@ -37,16 +58,18 @@ Contact: [ztagent.ai](https://ztagent.ai) · [VictorFang.com](https://VictorFang
 - OIDC JWT validation for Keycloak, Auth0, and compatible identity providers
 - OPA policy enforcement point/client with fail-closed production defaults
 - Registered, schema-validated tool gateway with risk metadata
-- YAML signature rules with Unicode normalization and regex timeouts
+- Canonical staged Rule IR and composable, provenance-aware Rule Packs
+- Optional Ed25519-signed commercial packs with fail-closed verification
+- Model-input, model-output, tool-input, and tool-output enforcement stages
 - OpenAI Responses, Anthropic Messages, and OpenAI-compatible model APIs
 - Optional LangChain `Runnable` adapter; the core remains orchestrator-neutral
 - Stateless request heuristics and memory/SQLite rolling 24-hour counters
 - HMAC-chained JSONL audit records with default secret/prompt redaction
 - Local identity containment, optional webhook, and Keycloak session revocation
-- Protected, dependency-free web administration portal
+- Protected, dependency-free **ZTAgent Control Plane** for policy, audit, and containment
 - Friendly project wizard and operational checks
 
-## Quick start
+## Quick start: API gateway
 
 Requires Python 3.11+ and, for policy enforcement, Docker or an OPA service.
 
@@ -66,9 +89,10 @@ ztagent check
 ztagent serve
 ```
 
-Open <http://127.0.0.1:8000/admin>. Development defaults disable authentication;
-the portal therefore uses a development administrator. Production configuration
-validation refuses disabled authentication or an OPA bypass.
+Open the **ZTAgent Control Plane** at <http://127.0.0.1:8000/admin>. Development
+defaults disable authentication, so the page uses a development administrator.
+Production configuration validation refuses disabled authentication or an OPA
+bypass. The `/admin` route remains stable for API compatibility.
 
 Call the gateway:
 
@@ -78,6 +102,27 @@ curl http://127.0.0.1:8000/v1/agent/run \
   -H 'Authorization: Bearer YOUR_OIDC_TOKEN' \
   -d '{"messages":[{"role":"user","content":"Summarize this report"}]}'
 ```
+
+## Quick start: Python SDK
+
+```python
+from ztagent_core.api import create_gateway
+from ztagent_core.auth import JWTAuthenticator
+from ztagent_core.config import load_config
+from ztagent_core.models import AgentRequest, Message
+
+config = load_config("config/agent.yaml")
+gateway = create_gateway(config)
+principal = JWTAuthenticator(config.auth).verify(access_token)
+
+response = await gateway.run(
+    AgentRequest(messages=[Message(role="user", content="Summarize this report")]),
+    principal,
+)
+```
+
+The access token must come from the application's authenticated request
+boundary. Do not construct identity or roles from request JSON or model output.
 
 ## Provider setup
 
@@ -156,19 +201,23 @@ identity or roles from model output or untrusted chain state.
 
 ## Before/after demo agents
 
-Install the demo extra and run three small LangChain applications:
+Install the demo extra and run five small LangChain applications:
 
 ```bash
 pip install -e '.[demos]'
 ztagent demo stock-injection
 ztagent demo unauthorized-publish
 ztagent demo article-only
+ztagent demo fintech-refund
+ztagent demo rogue-agent-egress
 ```
 
 Each command contrasts a deliberately vulnerable baseline with the protected
-framework path. The examples cover an indirect prompt injection hidden in stock
-data, unauthorized article publishing, and a safe article-only workflow.
-Email, DM, and social actions always remain in a local JSONL sandbox.
+framework path. The examples cover indirect prompt injection, unauthorized
+publishing, a safe article-only workflow, a compromised fintech refund identity,
+and rogue-agent communication over a disguised web write. Simulated funds and
+demo-tool web, email, DM, and social side effects remain in local JSONL sandboxes;
+`--live` may still contact the configured model provider and OPA.
 
 Use `--live` to exercise the configured OpenAI API or stay with the default
 deterministic offline model for a repeatable, credential-free security demo.
@@ -189,7 +238,9 @@ ztagent serve              Start the gateway and portal
 
 See [docs/architecture.md](docs/architecture.md) for the request flow, threat
 coverage, design decisions, limitations, deployment checklist, and research
-references. See [SECURITY.md](SECURITY.md) for vulnerability reporting and
+references. See [Rule IR and Rule Packs](docs/rule-packs.md) for pack authoring,
+activation, signed commercial distribution, and its security model. See
+[SECURITY.md](SECURITY.md) for vulnerability reporting and
 operational security guidance. The
 [blast-radius threat-modeling tutorial](docs/blast-radius-threat-modeling.md)
 provides worked examples for the included agents.

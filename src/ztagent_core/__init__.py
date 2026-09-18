@@ -9,6 +9,7 @@ from .api import create_app
 from .gateway import SecureAgentGateway
 from .models import AgentRequest, AgentResponse, Message, Principal
 from .tools import ToolRegistry, ToolSpec
+from .version import __version__
 
 __all__ = [
     "AgentRequest",
@@ -18,7 +19,7 @@ __all__ = [
     "SecureAgentGateway",
     "ToolRegistry",
     "ToolSpec",
+    "__version__",
     "create_app",
 ]
 
-__version__ = "0.1.0"

@@ -22,7 +22,7 @@ from .auth import JWTAuthenticator
 from .config import AppConfig, load_config
 from .containment import ContainmentService
 from .gateway import SecureAgentGateway, SecurityDenied
-from .guardrails import SignatureScanner
+from .guardrails import load_guardrail_scanner
 from .models import AgentRequest, Message, Principal, SecurityEvent
 from .policy import OPAClient
 from .portal import ADMIN_HTML
@@ -99,9 +99,7 @@ def create_gateway(config: AppConfig, tools: ToolRegistry | None = None) -> Secu
     return SecureAgentGateway(
         config=config,
         provider=HTTPModelProvider(config.provider),
-        scanner=SignatureScanner.from_file(
-            config.guardrails.signatures_file, config.guardrails.regex_timeout_ms
-        ),
+        scanner=load_guardrail_scanner(config.guardrails),
         policy=OPAClient(config.policy),
         audit=AuditLog.from_env(
             config.audit.path, config.audit.hmac_key_env, config.audit.log_prompt_content
@@ -201,7 +199,24 @@ def create_app(
             "provider": cfg.provider.kind,
             "model": cfg.provider.model,
             "environment": cfg.server.environment,
+            "guardrail_rules": secured.scanner.rule_count,
+            "rule_packs": len(secured.scanner.packs),
         }
+
+    @app.get("/admin/api/rule-packs")
+    async def admin_rule_packs(_: Principal = Depends(require_admin)) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": pack.manifest.name,
+                "version": pack.manifest.version,
+                "publisher": pack.manifest.publisher,
+                "digest": pack.digest,
+                "signed": pack.signed,
+                "signer_key_id": pack.signer_key_id,
+                "rules": len(pack.rules),
+            }
+            for pack in secured.scanner.packs
+        ]
 
     @app.get("/admin/api/events")
     async def admin_events(

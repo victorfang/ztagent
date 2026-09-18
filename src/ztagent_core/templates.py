@@ -42,7 +42,14 @@ policy:
 
 guardrails:
   signatures_file: config/signatures.yaml
+  packs: []
+  # Commercial sources should set require_signature, expected_pack_id,
+  # allowed_key_ids, and version_spec or expected_digest.
+  # trust_store: config/trusted-publishers.yaml
+  require_signed_packs: false
   regex_timeout_ms: 50
+  evaluation_budget_ms: 200
+  max_active_rules: 2000
   max_prompt_chars: 100000
   block_score: 80
 
@@ -133,7 +140,35 @@ allow if {
 allow if {
     input.action == "tool.execute"
     input.resource.risk == "high"
+    not input.resource.tool in {"issue_refund", "read_web_resource", "publish_web_message"}
     "ztagent-tool-admin" in input.roles
+}
+
+# Example transaction-aware policy: compromised service identities cannot
+# redirect refunds away from the original payment method.
+allow if {
+    input.action == "tool.execute"
+    input.resource.tool == "issue_refund"
+    "customer-service-agent" in input.roles
+    input.resource.authorization_context.destination_type == "original_payment_method"
+    input.resource.authorization_context.amount_cents <= 50000
+}
+
+# Larger refunds require a supervisor plus a trusted, request-bound approval.
+allow if {
+    input.action == "tool.execute"
+    input.resource.tool == "issue_refund"
+    "finance-supervisor" in input.roles
+    input.resource.authorization_context.destination_type == "original_payment_method"
+    input.resource.authorization_context.approval_verified == true
+    input.resource.authorization_context.amount_cents <= 500000
+}
+
+# Use a separate read capability; publish_web_message has no allow rule.
+allow if {
+    input.action == "tool.execute"
+    input.resource.tool == "read_web_resource"
+    input.resource.authorization_context.destination_class == "approved_business_service"
 }
 """
 

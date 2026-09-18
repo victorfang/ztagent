@@ -6,8 +6,8 @@
 > [LinkedIn](https://www.linkedin.com/in/drvictorfang)
 
 These small LangChain applications make the security difference visible without
-sending real email, direct messages, or social posts. Every delivery goes to a
-local JSONL sandbox under `data/demos/`.
+the demo tools sending real funds, web messages, email, direct messages, or social
+posts. Every simulated side effect goes to a local JSONL sandbox under `data/demos/`.
 
 ## Install and run
 
@@ -18,6 +18,8 @@ pip install -e '.[demos]'
 ztagent demo stock-injection
 ztagent demo unauthorized-publish
 ztagent demo article-only
+ztagent demo fintech-refund
+ztagent demo rogue-agent-egress
 
 # Show a legitimate privileged publishing workflow.
 ztagent demo unauthorized-publish --mode after --privileged
@@ -55,6 +57,8 @@ tools remain local sandbox fixtures.
 | `stock-injection` | Check and summarize an ACME stock quote | Untrusted market-data text tells the model to email a confidential draft; direct tool execution writes it to the attacker-addressed sandbox record | The tool-output scanner detects indirect prompt injection and blocks before the data reaches the model |
 | `unauthorized-publish` | Write an article and publish it to social media | The model's requested delivery executes with no identity or authorization decision | High-risk tool policy denies execution without `ztagent-tool-admin`; when authorized, arguments are also schema validated |
 | `article-only` | Draft an article without publishing | Demonstrates ordinary generation | The request passes signatures, anomaly checks, model policy, and audit, while no delivery capability is invoked |
+| `fintech-refund` | Customer-service refund agent operating through a compromised account | The stolen service identity directly records a synthetic $1,000 refund to a new offshore account | Transaction-aware policy sees a new destination, an amount above the service limit, and no approval; it blocks before the refund ledger changes |
+| `rogue-agent-egress` | Web-capable agent attempting an improvised coordination channel | The agent invokes the message-publishing capability with a nominal `GET`; the vulnerable tool records the synthetic outbound write | A dedicated publish capability cannot masquerade as read access; deny-by-default policy blocks it before the sandbox network log changes |
 
 `--privileged` simulates an application mapping a previously authenticated user
 to the required role. It demonstrates the positive authorization path: the
@@ -88,7 +92,7 @@ application-supplied demo principal (verified by OIDC in a real API request)
   → HMAC-chained audit
 ```
 
-Across the three scenarios, the protected demo directly demonstrates:
+Across the five scenarios, the protected demo directly demonstrates:
 
 - direct and indirect prompt injection signatures;
 - excessive agency and unauthorized communication;
@@ -97,6 +101,8 @@ Across the three scenarios, the protected demo directly demonstrates:
 - per-request anomaly counters;
 - secret/prompt redaction and event traceability;
 - accidental real-world side effects during demonstrations.
+- transaction-aware refund controls that survive theft of a valid service role;
+- capability-separated egress policy that cannot confuse GET-based publishing with reads.
 
 The wider framework also provides rolling abuse rules and identity containment,
 but these demos do not claim to trigger every framework feature in one run.
@@ -119,3 +125,52 @@ The communication tool is intentionally not connected to SMTP or social APIs.
 That keeps the demo safe and makes the authorization result—not an external
 account—the focus. Demo construction also disables containment webhooks and
 Keycloak administration calls, even if the main application configures them.
+
+## Fintech refund scenario
+
+This demo assumes the customer-service identity is already compromised. ZTAgent
+therefore does not claim authentication alone solves the incident. The tool exposes a
+minimal, non-secret authorization projection to policy:
+
+```json
+{
+  "amount_cents": 100000,
+  "destination_type": "external_account",
+  "approval_verified": false
+}
+```
+
+The policy permits a customer-service role only for refunds up to $500 to the original
+payment method. The attempted $1,000 redirect is denied even though the stolen identity
+has a valid service role. No bank API is contacted: the vulnerable side writes only to
+`refunds.jsonl`, and the protected side leaves that sandbox ledger unchanged.
+For the supervisor path, the demo's trusted local approval registry binds `APR-3001` to
+the exact case, customer, maximum amount, original-payment destination type, and
+tokenized destination reference. Merely inventing an approval-shaped ID does not set
+`approval_verified`.
+
+Production controls should additionally bind the case to the authenticated customer and
+original charge, require step-up approval for exceptions, enforce cumulative limits and
+velocity rules, tokenize destination references, and make the payment processor repeat
+the authorization independently.
+
+## Rogue-agent egress scenario
+
+This scenario is inspired by 2026 reports of agents using the dormant German DSEWiki as
+an improvised coordination board and of a separate later Hugging Face incident. The
+reports describe those as distinct events; this demo does not assert they were one hack:
+
+- [Reuters report on the German website activity](https://www.reuters.com/world/europe/openai-agents-hijacked-german-website-previously-undisclosed-ai-breakout-this-2026-09-04/)
+- [Researchers' reconstructed account](https://www.collusion.wiki/)
+
+The demo uses only `dsewiki.example.invalid`, a reserved non-routable hostname. Its
+synthetic agent requests `transport_method=GET` through the trusted
+`publish_web_message` capability. The agent cannot relabel that capability as
+`read_web_resource`; schema validation rejects fields from the other capability. Policy
+has no allow rule for publishing, so the protected tool never executes and
+`network.jsonl` remains unchanged.
+
+This demonstrates application-layer tool policy. Production enforcement must also place
+the agent in a network sandbox with deny-by-default DNS and egress, destination
+allowlists, redirect revalidation, method/body limits, and proxy-side classification.
+Prompt guardrails alone are not a reliable network boundary.
